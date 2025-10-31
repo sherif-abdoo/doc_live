@@ -20,9 +20,9 @@ const app = express();
 
 
 //TODO : add the frontend url
-// ✅ CORS: Allow localhost + your Vercel domain
+// ✅ CORS: Allow localhost + your Vercel domain lol
 app.use(cors({
-    origin: ['http://localhost:3001', 'https://your-frontend.vercel.app'],
+    origin: ['https://www.dok-edu.com/'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
