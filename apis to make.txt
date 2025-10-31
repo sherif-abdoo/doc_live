@@ -1,0 +1,72 @@
+create dok account {A.Essam} [done]
+register admin account {both Essam} [done]
+accept assistant(owner) {A.Essam} [done]
+reject assistant(owner) {A.Essam} [done]
+show pending registrations assistant {Y.Essam} [done] 
+remove assistant(owner) {Y.Essam} [done]
+register student account {both Essam} [done]
+show pending registrations student {A.Essam} [done]
+accept student {A.Essam} [done]
+show assistants belong to which group {Y.Essam} [done]
+show students belong to which group {Y.Essam} [done]
+remove student {A.Essam} [done]
+ban/unban student {A.Essam} [done]
+reject student {A.Essam} [done]
+edit login{A.Essam} [done]
+post on feed {both Essam} [done]
+make a session {Y.Essam} [done]
+show my admin profile (student) {A.Essam} [done]
+show my profile(student/admin) {A.Essam} [done]
+show student profile(admin) {A.Essam} [done]
+attend a session {Y.Essam} [done]
+view feed {Y.Essam} [done]
+assign group(owner) {A.Essam} [done]
+create quiz {A.Essam} [done]
+get all quizes {A.Essam} [done]
+get quiz {A.Essam} [done]
+start a quiz {both Essam} [done]
+get active quiz {A.Essam} [done]
+submit Active quiz {A.Essam} [done]
+submit quiz {A.Essam} [done]
+create assignment {A.Essam} [done]
+get all assignments {A.Essam} [done]
+get assignment {A.Essam} [done]
+submit assignment {A.Essam} [done]
+show pending submissions {A.Essam} [done]
+get submission by id {A.Essam} [done]
+show all my submissions(admin) {A.Essam}
+todo list apis {Y.Essam} [done]
+mark submission {A.Essam} [done]
+show my submissions(student) {A.Essam} [done]
+show submission {A.Essam} [done]
+leaderboard {Mustafa} [done]
+data analysis {Tamer} [done]    
+forget password {Mustafa}[done]
+login me {A.Essam}[done]
+create topic {both Essam}[done]
+get topic {both Essam}[done]
+get all topics {A.Essam}[done]
+update topic{both Essam}[done]
+delete topic {A.Essam} [done]
+create material {A.Essam} [done]
+get all {A.Essam}[done]
+get by id {ESSAM} [done]
+get by topic {A.Essam} [done]
+update material {Y.Essam}[done]
+delete material {Y.Essam}[done]
+generate reports by admin{A.Essam}[done]
+generate report by student{Tamer}
+
+
+
+
+clear database {Y.Essam}
+
+
+
+add the mailing functions
+
+
+
+
+any extra api asked by the frontend
