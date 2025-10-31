@@ -39,10 +39,6 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-
-// ensure preflight succeeds
-app.options('*', cors({ origin: corsOrigin, credentials: true }));
-
 app.use(express.json());
 
 /* -------------------- Health -------------------- */
