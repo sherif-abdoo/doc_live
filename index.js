@@ -10,7 +10,8 @@ const app = express();
 // Allow prod domains + local dev + Vercel previews for this project
 const STATIC_ALLOWED = new Set([
     'http://localhost:3000',
-    'http://localhost:3001',
+    'https://doc-frontend-live-772vbko5l-horizontal12.vercel.app',
+    'https://doc-frontend-live-git-main-horizontal12.vercel.app',
     'https://dok-edu.com',
     'https://www.dok-edu.com',
 ]);
