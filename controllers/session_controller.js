@@ -66,20 +66,33 @@ const endSession = asyncWrapper(async (req, res, next) => {
 })
 
 const attendSession = asyncWrapper(async (req, res, next) => {
-    sanitizeInput(req.params);
-    const stud = req.student;
+    const stud = req.user;
     const currSession = req.activeSession;
-    const isAttended = await session.hasAttendedSession(stud.id, currSession.sessionId);
-    if (isAttended) {
+    console.log("🔍 User data in attendSession:", req.user);
+    console.log("Student attempting to attend session:", stud.id, "Session ID:", currSession.sessionId);
+
+    if (stud.type != "admin") { // means the user is a student
+        const isAttended = await session.hasAttendedSession(stud.id, currSession.sessionId);
+
+        if (isAttended) {
+            return res.status(200).json({
+                status: "success",
+                data: { message: "Re-attending this session" }
+            });
+        }
+
+        await session.recordAttendance(stud.id, currSession.sessionId);
+
         return res.status(200).json({
             status: "success",
-            data: { message: "Re-attending this session" }
+            data: { message: "Attendance recorded successfully" }
         });
     }
-    await session.recordAttendance(stud.id, currSession.sessionId);
+
+    // Otherwise, it's probably an admin
     return res.status(200).json({
         status: "success",
-        data: { message: "Attendance recorded successfully" }
+        data: { message: "Admin entering session." }
     });
 });
 

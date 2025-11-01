@@ -7,7 +7,7 @@ const studentMiddleWare = require('../middleware/student_middleware');
 const sessionMiddleWare = require('../middleware/session_middleware');
 
 router.route('/attendSession')
-    .post(auth.studentProtect,sessionMiddleWare.activeSessionExists,  sessionControllers.attendSession);
+    .post(auth.protect,sessionMiddleWare.activeSessionExists,  sessionControllers.attendSession);
 
 // router.route('/createSession')
 //     .post(auth.adminProtect, sessionControllers.createSession);
