@@ -146,9 +146,13 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
     const { id, ...rest } = assignmentPlain;
 
     return {
-      ...rest,
-      submitted: isSubmitted ? 1 : 0
-    };
+          assignId: assignmentPlain.assignId,
+          title: assignmentPlain.title,
+          subject: assignmentPlain.subject,
+          topicId: assignmentPlain.topicId,
+          endDate: assignmentPlain.endDate,
+          submitted: isSubmitted ? 'true' : 'false'
+      };
   });
 
   return res.status(200).json({
