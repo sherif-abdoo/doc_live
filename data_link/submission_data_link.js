@@ -7,6 +7,7 @@ const Registration = require('../models/registration_model');
 const Session = require('../models/session_model');
 const Feed = require('../models/feed_model');
 const Submission = require('../models/submission_model');
+const { Op } = require("sequelize");
 
 
 async function getSubmissionForAssignment(studentId, assignmentId){

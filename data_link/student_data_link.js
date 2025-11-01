@@ -1,7 +1,7 @@
 const sequelize = require('../config/database');
 const Student = require('../models/student_model');
 const Admin = require('../models/admin_model');
-const {where} = require("sequelize");
+const { Op } = require("sequelize");
 const Rejection = require('../models/rejection_model.js');
 const Registration = require('../models/registration_model.js');
 const Attendance = require('../models/attendance_model.js');
