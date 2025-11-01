@@ -106,7 +106,9 @@ async function deleteOtpBySemester(semester) {
     where: {
       email: {
         [Op.in]: sequelize.literal(`(
-          SELECT "studentEmail" FROM student WHERE semester = ${sequelize.escape(semester)}
+          SELECT "studentEmail" 
+          FROM "student" 
+          WHERE LOWER(semester) LIKE LOWER(${sequelize.escape('%' + semester + '%')})
         )`)
       }
     }

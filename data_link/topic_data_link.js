@@ -48,7 +48,13 @@ function getAllTopics() {
 }
 
 function deleteTopicBySemester(semester) {
-    return Topic.destroy({ where: { semester } });
+  return Topic.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // matches "nov", "November", etc.
+      }
+    }
+  });
 }
 
 module.exports = {

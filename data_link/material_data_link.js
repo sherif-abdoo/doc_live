@@ -70,12 +70,15 @@ async function deleteMaterialBySemester(semester) {
     where: {
       topicId: {
         [Op.in]: sequelize.literal(`(
-          SELECT "topicId" FROM "topic" WHERE semester = ${sequelize.escape(semester)}
+          SELECT "topicId" 
+          FROM "topic" 
+          WHERE LOWER(semester) LIKE LOWER(${sequelize.escape('%' + semester + '%')})
         )`)
       }
     }
   });
 }
+
 
 
 module.exports = {

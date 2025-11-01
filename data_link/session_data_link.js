@@ -171,7 +171,9 @@ async function deleteAttendanceBySemester(semester) {
     where: {
       sessionId: {
         [Op.in]: sequelize.literal(`(
-          SELECT "sessionId" FROM "session" WHERE semester = ${sequelize.escape(semester)}
+          SELECT "sessionId" 
+          FROM "session" 
+          WHERE LOWER(semester) LIKE LOWER(${sequelize.escape('%' + semester + '%')})
         )`)
       }
     }
@@ -179,8 +181,15 @@ async function deleteAttendanceBySemester(semester) {
 }
 
 
-function deleteSessionsBySemester(semester){
-    return Session.destroy({ where: { semester } });
+
+function deleteSessionsBySemester(semester) {
+  return Session.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // case-insensitive partial match
+      }
+    }
+  });
 }
 
 function getActiveSessionByAGroup(group) {

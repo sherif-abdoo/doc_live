@@ -37,12 +37,14 @@ function getSubmissionsByStudentId(studentId){
     });
 }
 
-function deleteSubmissionBySemester(semester){
-    return Submission.destroy({
-        where: {
-            semester
-        }
-    });
+function deleteSubmissionBySemester(semester) {
+  return Submission.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // case-insensitive partial match
+      }
+    }
+  });
 }
 
 module.exports = { 

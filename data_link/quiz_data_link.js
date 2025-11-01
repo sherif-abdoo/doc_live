@@ -90,7 +90,13 @@ function findQuizAndDelete(quizId) {
 }
 
 function deleteQuizBySemester(semester) {
-    return Quiz.destroy({ where: { semester } });
+  return Quiz.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // matches "nov", "November", etc.
+      }
+    }
+  });
 }
 
 module.exports = {

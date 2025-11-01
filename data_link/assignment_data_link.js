@@ -93,7 +93,13 @@ function findAssignmentAndDelete(assignId){
 // }
 
 function deleteAssignmentBySemester(semester) {
-    return Assignment.destroy({ where: { semester } });
+  return Assignment.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // matches "nov", "November", etc.
+      }
+    }
+  });
 }
 
 module.exports={

@@ -139,15 +139,32 @@ async function getStudentsByAssistant(assistantId) {
 }
 
 function deleteRegistrationBySemester(semester) {
-    return Registration.destroy({ where: { semester } });
+  return Registration.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // matches "nov", "November", etc.
+      }
+    }
+  });
 }
-
 function deleteRejectionsBySemester(semester) {
-    return Rejection.destroy({ where: { semester } });
+  return Rejection.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // matches "nov", "November", etc.
+      }
+    }
+  });
 }
 
 function deleteStudentBySemester(semester) {
-    return Student.destroy({ where: { semester } });
+  return Student.destroy({
+    where: {
+      semester: {
+        [Op.iLike]: `%${semester}%` // matches "nov", "November", etc.
+      }
+    }
+  });
 }
 
 
