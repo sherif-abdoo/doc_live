@@ -109,7 +109,7 @@ const submitAssignment = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     sanitizeInput(req.params);
     const { answers } = req.body;
-    const studentId = req.user.id;
+    const studentId = req.student.id;
     const found = await student.findStudentById(studentId);
     const {assignId} = req.params;
     const newSub= await assignment.createSubmission(assignId, studentId,found.assistantId ,answers, found.semester);

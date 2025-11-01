@@ -62,7 +62,10 @@ const assignExists = asyncWrapper(async (req, res, next) => {
 });
 
 const canSeeAssign = asyncWrapper(async (req, res, next) => {
-    const userGroup = req.user.group ;
+    let userGroup
+    if (req.user){userGroup = req.user.group;}
+    else if (req.admin){userGroup = req.admin.group;}
+    else if (req.student){userGroup = req.student.group;}
     const assignData = req.assignData;
     const publisher = await admin.findAdminById(assignData.publisher);
     if (!publisher) {
@@ -78,7 +81,7 @@ const canSeeAssign = asyncWrapper(async (req, res, next) => {
 
 const submittedBefore = asyncWrapper(async (req, res, next) => {
     const assId = req.params.assignId;
-    const studentId= req.user.id;
+    const studentId= req.student.id;
     const submission = await assignment.findSubmissionByAssignmentAndStudent(assId,studentId);
     if(submission){
         return next(new AppError("You cannot submit same assignment twice", httpStatus.FORBIDDEN));
