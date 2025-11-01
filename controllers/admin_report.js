@@ -42,12 +42,17 @@ const createReport = async (req, res) => {
         error: 'Topic not found or not owned by this assistant.'
       });
     }
-    if (topic.group !== req.admin.group) {
+    if (topic.group !== req.admin.group && req.admin.group !== 'all') {
       return res.status(403).json({ error: 'You are not authorized to access this topic.' });
     }
-
+    let students = [];  
     // 👥 Get all students assigned to this assistant
-    const students = await student.getStudentsByAssistant(assistantId);
+    if(req.admin.group === 'all'){
+      students = await Student.findAll({});
+    }
+    else {
+      students = await student.getStudentsByAssistant(assistantId);
+    }
     // Fetch assignments WITH title
     const assignments = await Assignment.findAll({
       where: { topicId: topic.topicId },

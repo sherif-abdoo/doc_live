@@ -20,26 +20,31 @@ function getStudentLastTopic(group) {
 }
 
 async function getAllTopicsByGroup(group) {
-  return await Topic.findAll({where: { group },
-    attributes: {include : [['topicId', 'id']]},
-    order: [['createdAt', 'DESC']]
-  });
+    return await Topic.findAll({where: { group },
+        attributes: {include : [['topicId', 'id']]},
+        order: [['createdAt', 'DESC']]
+    });
 }
 
 async function getTopicByAssistantId(topicId,assistantId) {
-  return Topic.findOne({
-      where: { topicId: parseInt(topicId, 10), publisher: assistantId }
+    if (assistantId === 1){
+        return Topic.findOne({
+            where: { topicId }
+        });
+    }
+    return Topic.findOne({
+        where: { topicId: parseInt(topicId, 10), publisher: assistantId }
     });
 }
 
 
 function getAllTopics() {
-  return Topic.findAll({
-    attributes: {
-      include: [['topicId', 'id']]
-    },
-    order: [['createdAt', 'DESC']] // make sure topicId is a real column in your model
-  });
+    return Topic.findAll({
+        attributes: {
+            include: [['topicId', 'id']]
+        },
+        order: [['createdAt', 'DESC']] // make sure topicId is a real column in your model
+    });
 }
 
 function deleteTopicBySemester(semester) {

@@ -95,6 +95,7 @@ const showStudentInGroup = asyncWrapper(async (req, res) => {
       id : student.studentId,
       name: student.studentName,
       email: student.studentEmail,
+      banned: student.banned,
     }))
 }})});
 

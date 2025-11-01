@@ -103,8 +103,16 @@ function findNotVerifiedStudentsByTaGroup(TAGroup){
 }
 
 function findVerifiedStudentsByTaGroup(TAGroup){
+    if (TAGroup === 'all') {
+        return Student.findAll({
+            where: { verified: true }
+        },
+    {attributes: ['studentId', 'name', 'email', 'group', 'semester','banned']}
+);
+    }   
     return Student.findAll({
-        where: {verified : true , group: TAGroup}});
+        where: {verified : true , group: TAGroup}},
+        {attributes: ['studentId', 'name', 'email', 'group', 'semester', 'banned']});
 }
 
 function createPost(text,semester,adminId){
