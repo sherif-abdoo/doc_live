@@ -208,11 +208,16 @@ function getActiveSessionByAGroup(group) {
 }
 
 function getLastCreatedSessionByGroup(adminGroup){
+  if(adminGroup==="all")  {
     return Session.findOne({
+        order: [['dateAndTime', 'DESC']]
+    });
+  }
+   else{ return Session.findOne({
         where: { group: adminGroup },
         order: [['dateAndTime', 'DESC']]
     });
-}
+}}
 
 async function existingSession(adminGroup){
   const now = new Date();
