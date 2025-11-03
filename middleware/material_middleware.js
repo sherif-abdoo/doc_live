@@ -50,7 +50,7 @@ const canSeeMaterial = asyncWrapper(async (req, res, next) => {
     const materialf = req.found;
     const userGroup = req.user.group;
     const publisher = await admin.getAdminById(materialf.publisher);
-    if (publisher.group !== 'all' && publisher.group !== userGroup) {
+    if (userGroup !== 'all' && publisher.group !== userGroup) {
         return next(new AppError("You do not have permission to view this material", httpStatus.FORBIDDEN));
     }
     console.log("User can see material");
