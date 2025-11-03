@@ -2,20 +2,14 @@ name: Deploy Backend
 
 on:
   push:
-    branches: [ "main" ]   # <-- change to "master" if your default branch is master
+    branches: [ "main" ]  # change if your default branch is different
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout (for completeness)
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node (optional)
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ secrets.NODE_VERSION || '20' }}
 
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -25,19 +19,32 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
+
+            # 1) Load nvm in non-login shell
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            # 2) Ensure Node is available (use 20.x or whatever you prefer)
+            nvm install 20
+            nvm use 20
+
+            # 3) Ensure pm2 exists
+            command -v pm2 >/dev/null 2>&1 || npm i -g pm2
+
+            # 4) Deploy
             cd ${{ secrets.BACKEND_PATH }}
-            # ensure repo exists and is clean
             git fetch --all
             git reset --hard origin/main   # change to origin/master if needed
-            # install deps (prod only)
+
             if [ -f package-lock.json ]; then
               npm ci --omit=dev
             else
               npm install --omit=dev
             fi
-            # run DB migrations if you use them (uncomment one)
+
+            # Optional: run migrations
             # npx sequelize db:migrate || true
             # npx prisma migrate deploy || true
-            # restart app
+
             pm2 restart backend || pm2 start "npm start" --name backend
             pm2 save
