@@ -29,6 +29,9 @@ router.route('/assignGroupToAssistant/:id')
 router.route('/createNewGroup')
     .post(auth.adminProtect, dokmiddleware.checkRole, DOK.createNewGroup);
 
+router.route('/deleteGroup/:groupName')
+    .delete(auth.adminProtect, dokmiddleware.checkRole, DOK.deleteGroup);
+
 router.route('/deleteBySemester')
     .delete(auth.adminProtect, dokmiddleware.checkRole, topicMiddleWare.checkSemester, DOK.deleteSemester);
 

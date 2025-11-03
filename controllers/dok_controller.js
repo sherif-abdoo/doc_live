@@ -78,7 +78,8 @@ const showPendingRegistration = asyncWrapper(async (req, res) => {
   data: admin.map(admin => ({
       name: admin.name,
       email: admin.email,
-      group: admin.group
+      group: admin.group,
+      phoneNumber: admin.phoneNumber
     }))
 }})})
 
@@ -143,6 +144,20 @@ const createNewGroup = asyncWrapper(async (req, res) => {
     });
 });
 
+const deleteGroup = asyncWrapper(async (req, res) => {
+    const { groupName } = req.body;
+    const groupl=groupName.toLowerCase();
+    const existingGroup = await Group.findOne({ where: { groupName:  groupl } });
+    if (!existingGroup) {
+        return next(new AppError('Group name does not exists', 400));
+    }
+    await existingGroup.destroy();
+    return res.status(200).json({
+        status: "success",
+        message: `Group ${groupName} deleted successfully`
+    });
+})
+
 const deleteSemester = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const { semester } = req.body;
@@ -183,5 +198,6 @@ module.exports = {
     checkAssistantGroup,
     assignGroupToAssistant,
     createNewGroup,
+    deleteGroup,
     deleteSemester
 }
