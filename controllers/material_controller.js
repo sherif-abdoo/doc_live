@@ -37,16 +37,10 @@ const createMaterial = asyncWrapper(async (req, res, next) => {
 });
 
 const getAllMaterials = asyncWrapper(async (req, res, next) => {
-    if (req.user.group === 'all') {
-        const materials = await material.getAllMaterialsAllGroups();
-        return res.status(200).json({
-            status: "success",
-            results: materials.length,
-            data: { materials }
-        });
-    }
-    const materials = await material.getAllMaterialsByGroup(req.user.group);
-    
+    const group = req.user.group;
+    const materials = (group === 'all'
+        ? await material.getAllMaterialsAllGroups()
+        : await material.getAllMaterialsByGroup(group));
     
     const materialsWithType = materials.map(mat => {
         // Convert Sequelize instance to plain object
