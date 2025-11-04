@@ -46,10 +46,24 @@ const getAllMaterials = asyncWrapper(async (req, res, next) => {
         });
     }
     const materials = await material.getAllMaterialsByGroup(req.user.group);
+    
+    
+    const materialsWithType = materials.map(mat => {
+        // Convert Sequelize instance to plain object
+        const materialData = mat.toJSON ? mat.toJSON() : JSON.parse(JSON.stringify(mat));
+        const documentUrl = materialData.document || '';
+    
+        const last4Chars = documentUrl.slice(-4).toLowerCase();
+        const materialType = last4Chars === '.pdf' ? 'pdf' : 'url';
+        materialData.type = materialType;
+        
+        return materialData;
+    });
+    
     return res.status(200).json({
         status: "success",
-        results: materials.length,
-        data: { materials }
+        results: materialsWithType.length,
+        data: { materials: materialsWithType }
     });
 
 });
