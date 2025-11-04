@@ -12,7 +12,7 @@ const Student = require('../models/student_model.js');
 const Topic = require('../models/topic_model.js');
 const topic = require('../data_link/topic_data_link.js');
 const Material = require('../models/material_model');
-const material = require('../data_link/material_data_link');
+const material = require('../data_link/material_data_link.js');
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
 
