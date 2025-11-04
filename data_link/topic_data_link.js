@@ -20,8 +20,14 @@ function getStudentLastTopic(group) {
 }
 
 async function getAllTopicsByGroup(group) {
-    return await Topic.findAll({where: { group },
-        attributes: {include : [['topicId', 'id']]},
+    return await Topic.findAll({
+        where: {
+            [Op.or]: [
+                { group },        // the user's group
+                { group: 'all' }  // topics available to all
+            ]
+        },
+        attributes: { include: [['topicId', 'id']] },
         order: [['createdAt', 'DESC']]
     });
 }
