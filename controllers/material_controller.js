@@ -38,7 +38,7 @@ const createMaterial = asyncWrapper(async (req, res, next) => {
 
 const getAllMaterials = asyncWrapper(async (req, res, next) => {
     if (req.user.group === 'all') {
-        const materials = await material.getAllMaterialsByGroup();
+        const materials = await material.getAllMaterials();
         return res.status(200).json({
             status: "success",
             results: materials.length,

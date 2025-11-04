@@ -5,6 +5,7 @@ const asyncWrapper = require('../middleware/asyncwrapper');
 const Material = require('../models/material_model');
 const Topic = require('../models/topic_model');
 const { Op } = require("sequelize");
+const { get } = require('../routes/material_routes');
 
 Material.belongsTo(Admin, { foreignKey: "publisher" });
 Material.belongsTo(Topic, { foreignKey: 'topicId' });
@@ -22,8 +23,15 @@ function getMaterialById(materialId) {
     attributes: {include : [['materialId', 'id']]}});
 }
 
-function getAllMaterialsByGroup(){
-    return Material.findAll();
+async function getAllMaterials() {
+  return await Material.findAll({
+    include: [
+      { model: Admin, attributes: ['group'] },
+      { model: Topic, attributes: ['subject'] }
+    ],
+    attributes: { include: [['materialId', 'id']] },
+    order: [['materialId', 'DESC']]
+  });
 }
 
 async function getAllMaterialsByGroup(group) {
@@ -93,5 +101,6 @@ module.exports = {
     updateMaterial,
     deleteMaterial,
     getMaterialByTopicId,
-    deleteMaterialBySemester
+    deleteMaterialBySemester,
+    getAllMaterials
 };
