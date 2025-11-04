@@ -22,6 +22,10 @@ function getMaterialById(materialId) {
     attributes: {include : [['materialId', 'id']]}});
 }
 
+function getAllMaterialsByGroup(){
+    return Material.findAll();
+}
+
 async function getAllMaterialsByGroup(group) {
     return await Material.findAll({
         include: [
