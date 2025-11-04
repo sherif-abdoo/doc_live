@@ -23,7 +23,7 @@ function getMaterialById(materialId) {
     attributes: {include : [['materialId', 'id']]}});
 }
 
-async function getAllMaterials() {
+async function getAllMaterialsAllGroups() {
   return await Material.findAll({
     include: [
       { model: Admin, attributes: ['group'] },
@@ -102,5 +102,5 @@ module.exports = {
     deleteMaterial,
     getMaterialByTopicId,
     deleteMaterialBySemester,
-    getAllMaterials
+    getAllMaterialsAllGroups
 };
