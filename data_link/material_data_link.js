@@ -5,7 +5,6 @@ const asyncWrapper = require('../middleware/asyncwrapper');
 const Material = require('../models/material_model');
 const Topic = require('../models/topic_model');
 const { Op } = require("sequelize");
-const { get } = require('../routes/material_routes');
 
 Material.belongsTo(Admin, { foreignKey: "publisher" });
 Material.belongsTo(Topic, { foreignKey: 'topicId' });
