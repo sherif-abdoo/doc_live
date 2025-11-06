@@ -28,9 +28,7 @@ const startSession = asyncWrapper(async (req, res) => {
   const today = new Date();
   const dayName = days[today.getDay()];
   let currTopic = await topicDl.getStudentLastTopic(sgroup);
-    if (!currTopic) {
-        currTopic = 'all';
-    }
+
   const newSession = await admin.createSession(currTopic.topicId,sgroup, currTopic.semester, today, dayName);
 
    sse.notifyStudents(sgroup, {

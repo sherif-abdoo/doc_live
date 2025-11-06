@@ -28,7 +28,7 @@ const checkTopicExists = asyncWrapper(async (req, res, next) => {
 const checkInputData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { title, description, document, topicId } = req.body; 
-    if (!title || !description || !document || !topicId) {
+    if (!title || !document || !topicId) {
         return next(new AppError("Missing required fields: title, description, document, topicId", httpStatus.BAD_REQUEST));
     }
     next();
