@@ -127,7 +127,7 @@ async function findAllStudentsForProfile(assistantId) {
 
   return await Student.findAll({
     where: whereClause,
-    attributes: ['studentId', 'studentName', 'totalScore', 'banned']
+    attributes: ['studentId', 'studentName', 'studentEmail', 'studentPhoneNumber' ,'totalScore', 'banned']
   });
 }
 
