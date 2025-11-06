@@ -36,7 +36,7 @@ const forgetPassword = asyncwrapper(async (req, res, next) => {
             });
         }
     }
-    res.json({
+    res.status(404).json({
         status:"email not found",
     })
 });
