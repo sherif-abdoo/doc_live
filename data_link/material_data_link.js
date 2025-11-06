@@ -9,8 +9,8 @@ const { Op } = require("sequelize");
 Material.belongsTo(Admin, { foreignKey: "publisher" });
 Material.belongsTo(Topic, { foreignKey: 'topicId' });
 
-function createMaterial (title, description, document, topicId, publisher, uploadDate) {
-    return Material.create({title, description, document, topicId, publisher, uploadDate});
+function createMaterial (title, description, document, link, topicId, publisher, uploadDate) {
+    return Material.create({title, description, document, link, topicId, publisher, uploadDate});
 } 
 
 function getMaterialById(materialId) {

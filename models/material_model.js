@@ -8,6 +8,7 @@ const Material = sequelize.define('Material', {
     title: DataTypes.STRING,
     description: DataTypes.TEXT,
     document: DataTypes.STRING,
+    link: DataTypes.STRING,
     uploadDate: DataTypes.DATE,
     topicId: DataTypes.INTEGER,
     publisher: DataTypes.INTEGER

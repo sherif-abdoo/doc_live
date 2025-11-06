@@ -18,12 +18,12 @@ const { sanitizeInput } = require('../utils/sanitize.js');
 
 const createMaterial = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {title, description, document, topicId} = req.body;
+    const {title, description, document, link, topicId} = req.body;
     const publisher = req.admin.id;
     const uploadDate = new Date();
     const foundTopic = await topic.getTopicById(topicId);
-    console.log("Creating material with data:", { title, description, document, topicId, publisher, uploadDate });
-    const newMaterial = await material.createMaterial(title, description, document, topicId, publisher, uploadDate);
+    console.log("Creating material with data:", { title, description, document, link, topicId, publisher, uploadDate });
+    const newMaterial = await material.createMaterial(title, description, document, link, topicId, publisher, uploadDate);
     // ✅ Create a new response object that includes subject
     const materialWithSubject = {
         ...newMaterial.toJSON ? newMaterial.toJSON() : newMaterial, // Handle ORM instances
