@@ -1,7 +1,7 @@
 require("dotenv").config();
 const User = require('../data_link/forget_password');
 const asyncwrapper = require('../middleware/asyncwrapper');
-const sengGrid = require('../services/sendgird');
+const sengGrid = require('../services/sendEmails');
 const crypto = require('crypto');
 const {sanitizeInput} = require('../utils/sanitize');
 
