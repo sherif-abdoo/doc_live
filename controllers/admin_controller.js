@@ -165,6 +165,10 @@ const showMyProfile = asyncWrapper(async (req, res) => {
 
   // Fetch verified, not banned students for this admin/assistant
   const myStudents = await student.findAllStudentsForProfile(adminId);
+  let admins;
+  if(adminId==1){
+    admins= await admin.getAllAdmins();
+  }
 
   return res.status(200).json({
     status: "success",
@@ -174,7 +178,8 @@ const showMyProfile = asyncWrapper(async (req, res) => {
       adminEmail: adminProfile.email,
       phoneNumber: adminProfile.phoneNumber,
       group: adminProfile.group,
-      students: myStudents
+      students: myStudents,
+      admins : (adminId==1 ? admins : "n/a")
     }
   });
 });
