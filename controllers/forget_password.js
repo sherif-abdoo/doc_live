@@ -19,7 +19,7 @@ const forgetPassword = asyncwrapper(async (req, res, next) => {
         const hasOTP = await User.HasOTP(email);
         console.log(hasOTP);
         if(hasOTP===true){
-            res.json({
+            res.status(400).json({
                 status: "You have already requested an OTP",
             })
         }
