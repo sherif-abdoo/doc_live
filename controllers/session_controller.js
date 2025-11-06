@@ -27,7 +27,7 @@ const startSession = asyncWrapper(async (req, res) => {
   const adminName = adminN.name;
   const today = new Date();
   const dayName = days[today.getDay()];
-  const currTopic = await topicDl.getStudentLastTopic(sgroup);
+  let currTopic = await topicDl.getStudentLastTopic(sgroup);
     if (!currTopic) {
         currTopic = 'all';
     }
