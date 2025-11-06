@@ -162,7 +162,13 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
 });
 
 
-
+const deleteAllAssignmentSubmissionsFunc = asyncWrapper(async (req, res, next) => {
+    await submissions.deleteAllAssignmentSubmissions();
+    return res.status(200).json({
+        status: "success",
+        data: { message: "All submissions for the assignment deleted successfully" }
+    });
+});
 
 
 const deleteAssignment = asyncWrapper(async (req, res, next) => {
@@ -199,5 +205,6 @@ module.exports={
     submitAssignment,
     getUnsubmittedAssignments,
     deleteAssignment,
-    modifyAssignment
+    modifyAssignment,
+    deleteAllAssignmentSubmissionsFunc
 }

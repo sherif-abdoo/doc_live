@@ -21,7 +21,6 @@ async function getAllAssignments() {
   });
 }
 
-
 async function getAllAssignmentsByGroup(group) {
     return await Assignment.findAll({
         attributes: {
@@ -112,5 +111,5 @@ module.exports={
     findSubmissionByAssignmentAndStudent,
     getAssignmentsByTopicId,
     findAssignmentAndDelete,
-    deleteAssignmentBySemester
+    deleteAssignmentBySemester,
 }
