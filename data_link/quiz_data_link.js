@@ -16,13 +16,13 @@ function createQuiz(mark,publisher,date,semester,durationInMin,topicId, title){
 
 function getAllQuizzes(){
     return Quiz.findAll({attributes : {include: [
-        ['quizId', 'id'],
+        ['quizId', 'id'],[Sequelize.col('topic.subject'), 'subject']
     ]},
     include: [
       {
         model: Topic,
         as: 'topic', // only needed if you used 'as' in association
-        attributes: ['subject'] // or ['name'], depending on your column
+        attributes: [] // or ['name'], depending on your column
       }
     ],
      order: [['quizId', 'DESC']]});
