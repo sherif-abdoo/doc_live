@@ -182,6 +182,14 @@ const deleteQuiz = asyncWrapper(async (req, res, next) => {
     });
 });
 
+const deleteAllQuizSubmissionsFunc = asyncWrapper(async (req, res, next) => {
+    await submission.deleteAllQuizSubmissions();
+    return res.status(200).json({
+        status: "success",
+        data: { message: "All submissions for the quiz deleted successfully" }
+    });
+});
+
 
 module.exports = {
     createQuiz  ,
@@ -192,5 +200,6 @@ module.exports = {
     submitActiveQuiz,
     submitQuiz,
     modifyQuiz,
-    deleteQuiz
+    deleteQuiz,
+    deleteAllQuizSubmissionsFunc
 };

@@ -16,11 +16,26 @@ function createAssignment(mark, document, startDate, endDate, semester, publishe
 
 async function getAllAssignments() {
   return Assignment.findAll({
-    attributes: {include: [['assignId', 'id']], order: [['assignId', 'DESC']]} ,       
-    include: { model: Topic, attributes: ['subject']},
+    attributes: {
+      include: [
+        ['assignId', 'id'],
+        [col('Admin.group'), 'group'],
+        [col('Topic.subject'), 'subject']
+      ]
+    },
+    order: [['assignId', 'DESC']],
+    include: [
+      {
+        model: Topic,
+        attributes: []
+      },
+      {
+        model: Admin,
+        attributes: [] // no "where" — show all admins' assignments
+      }
+    ]
   });
 }
-
 
 async function getAllAssignmentsByGroup(group) {
     return await Assignment.findAll({
@@ -112,5 +127,5 @@ module.exports={
     findSubmissionByAssignmentAndStudent,
     getAssignmentsByTopicId,
     findAssignmentAndDelete,
-    deleteAssignmentBySemester
+    deleteAssignmentBySemester,
 }

@@ -52,10 +52,20 @@ const getTopicById = asyncWrapper(async (req, res, next) => {
     return { ...plain, type: 'pdf' };     // add new field
   });
 
-   const materials = (await material.getMaterialByTopicId(topicId))
+ const materials = (await material.getMaterialByTopicId(topicId))
   .map(a => {
-    const plain = a.get({ plain: true }); // turn Sequelize model into plain object
-    return { ...plain, type: 'pdf' };     // add new field
+    const plain = a.get({ plain: true }); // Convert Sequelize model to plain object
+
+    let type;
+    const hasDocument = !!plain.document;
+    const hasLink = !!plain.link;
+
+    if (hasDocument && hasLink) type = 'both';
+    else if (hasDocument) type = 'pdf';
+    else if (hasLink) type = 'url';
+    else type = 'unknown'; // fallback if neither exists
+
+    return { ...plain, type };
   });
 
     return res.status(200).json({
