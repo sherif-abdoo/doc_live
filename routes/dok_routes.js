@@ -35,7 +35,6 @@ router.route('/createNewGroup')
 router.route('/deleteGroup/:groupName')
     .delete(auth.adminProtect, dokmiddleware.checkRole, DOK.deleteGroup);
 
-
 router.route('/deleteAllAssignmentsSubmission')
     .delete(auth.adminProtect, dokmiddleware.checkRole , assignControllers.deleteAllAssignmentSubmissionsFunc);
 
