@@ -36,7 +36,7 @@ const createReport = async (req, res) => {
     const assistantId = req.admin.id;
 
     // 🔍 Validate topic exists and belongs to this assistant
-    const topic = await topicDl.getTopicByAssistantId(topicId, assistantId);
+    const topic = await topicDl.getTopicById(topicId);
     if (!topic) {
       return res.status(404).json({
         error: 'Topic not found or not owned by this assistant.'

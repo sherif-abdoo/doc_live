@@ -32,7 +32,7 @@ async function getAllTopicsByGroup(group) {
     });
 }
 
-async function getTopicByAssistantId(topicId,assistantId) {
+/*async function getTopicByAssistantId(topicId,assistantId) {
     if (assistantId === 1){
         return Topic.findOne({
             where: { topicId }
@@ -42,7 +42,7 @@ async function getTopicByAssistantId(topicId,assistantId) {
         where: { topicId: parseInt(topicId, 10), publisher: assistantId }
     });
 }
-
+*/
 
 function getAllTopics() {
     return Topic.findAll({
@@ -69,6 +69,6 @@ module.exports = {
     getAllTopicsByGroup,
     getAllTopics,
     getStudentLastTopic,
-    getTopicByAssistantId,
+    //getTopicByAssistantId
     deleteTopicBySemester
 };
