@@ -19,7 +19,7 @@ const checkField = asyncWrapper(async (req, res, next) => {
     }
     console.log("chack 1 done, all fields present")
 
-    if (typeof nmark !== 'number' || nmark <= 0) {
+    if (typeof nmark !== 'number' || nmark <0) {
         return next(new AppError("Mark must be a non-negative number", httpStatus.BAD_REQUEST));
     }
     console.log("chack 2 done, mark valid")
