@@ -14,7 +14,7 @@ const checkField = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const {mark, document,  endDate, semester, topicId, title, description}= req.body;
     const nmark = Number(mark);
-    if (nmark == null || document == null || semester == null || endDate == null || topicId == null || title == null || description == null) {
+    if ( document == null || semester == null || endDate == null || topicId == null || title == null || description == null) {
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
     }
     console.log("chack 1 done, all fields present")
