@@ -42,7 +42,7 @@ const createReport = async (req, res) => {
         error: 'Topic not found or not owned by this assistant.'
       });
     }
-    if (topic.group !== req.admin.group && req.admin.group !== 'all') {
+    if (topic.group !== req.admin.group && req.admin.group !== 'all' && topic.group !== 'all') {
       return res.status(403).json({ error: 'You are not authorized to access this topic.' });
     }
     const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
