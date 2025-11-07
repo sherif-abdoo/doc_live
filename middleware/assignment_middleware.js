@@ -46,6 +46,7 @@ const checkField = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Semester must be a non-empty string", httpStatus.BAD_REQUEST));
     }
     console.log("chack 7 done, semester valid")
+    
     next();
 })
 

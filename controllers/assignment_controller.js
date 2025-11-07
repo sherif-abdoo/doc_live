@@ -18,10 +18,11 @@ const {sanitizeInput}= require('../utils/sanitize.js');
 const createAssignment = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const {mark, document,  endDate, semester, topicId, title, description}= req.body;
+    const nmark = Number(mark);
     const startDate = new Date(); // current date
     const publisher = req.admin.id;
     const createdAssignment = await assignment.createAssignment
-    (mark, document, startDate, endDate, semester, publisher,topicId, title, description) //7aga
+    (nmark, document, startDate, endDate, semester, publisher,topicId, title, description) //7aga
     return res.status(201).json({
         status: "success" ,
         data: { message: "assignment created successfully", id: createdAssignment.assignId },
