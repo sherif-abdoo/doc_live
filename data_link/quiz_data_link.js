@@ -5,7 +5,7 @@ const Quiz = require('../models/quiz_model');
 const Admin = require('../models/admin_model');
 const Submission = require('../models/submission_model');
 const Topic = require('../models/topic_model');
-
+//ggg
 Quiz.belongsTo(Admin, { foreignKey: "publisher" });
 Quiz.belongsTo(Topic, { foreignKey: "topicId", as: 'topic' });
 
