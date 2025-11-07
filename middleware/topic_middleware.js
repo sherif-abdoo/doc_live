@@ -60,7 +60,7 @@ const canUpdateTopic = asyncWrapper(async (req, res, next) => {
     console.log("Admin group:", group);
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    if(group !== adminf.group || group === "all"){
+    if(group !== adminf.group || group !== "all"){
         return next(new AppError("You do not have permission to update this topic", httpStatus.FORBIDDEN));
     }
     next();
