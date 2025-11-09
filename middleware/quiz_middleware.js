@@ -129,8 +129,10 @@ const submittedBefore = asyncWrapper(async (req, res, next) => {
     const subQuiz = req.quizData;
     const studentId= req.user.id;
     const submission = await quiz.findSubmissionByQuizAndStudent(subQuiz.quizId,studentId);
+    req.submitted = "false";
     if(submission){
-        return next(new AppError("You cannot submit same quiz twice", httpStatus.FORBIDDEN));
+        req.submitted = "true";
+        console.log("resubmitting quiz");
     }
     next();
 });

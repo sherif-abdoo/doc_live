@@ -113,14 +113,29 @@ const submitAssignment = asyncWrapper(async (req, res) => {
     const studentId = req.student.id;
     const found = await student.findStudentById(studentId);
     const {assignId} = req.params;
-    const newSub= await assignment.createSubmission(assignId, studentId,found.assistantId ,answers, found.semester);
-
-    return res.status(200).json({
+    if(req.submitted==="false"){
+      console.log("Creating new submission");
+      const newSub= await assignment.createSubmission(assignId, studentId,found.assistantId ,answers, found.semester);
+      return res.status(200).json({
         status: "success",
         data: { message: "Assignment submitted successfully" ,
             id: newSub.id
         }
     });
+    }
+    else{
+      console.log("Updating existing submission");
+
+      const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId,studentId);
+      submission.answers = answers;
+      await submission.save();
+      return res.status(200).json({
+        status: "success",
+        data: { message: "Assignment resubmitted successfully" ,
+            id: submission.id
+        }
+    });
+  }
 })
 
 

@@ -84,8 +84,9 @@ const submittedBefore = asyncWrapper(async (req, res, next) => {
     const assId = req.params.assignId;
     const studentId= req.student.id;
     const submission = await assignment.findSubmissionByAssignmentAndStudent(assId,studentId);
+    req.submitted = "false";
     if(submission){
-        return next(new AppError("You cannot submit same assignment twice", httpStatus.FORBIDDEN));
+       req.submitted = "true";
     }
     console.log("User has not submitted this assignment before");
     next();

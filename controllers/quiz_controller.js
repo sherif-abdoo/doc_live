@@ -128,7 +128,6 @@ const submitActiveQuiz = asyncWrapper(async (req, res, next) => {
     const found = await student.findStudentById(studentId);
     const activeQuiz = req.quizData;
     const newSub= await quiz.createSubmission(activeQuiz.quizId, studentId,found.assistantId ,answers, found.semester);
-
     return res.status(200).json({
         status: "success",
         data: { message: "Quiz submitted successfully" ,
@@ -137,6 +136,7 @@ const submitActiveQuiz = asyncWrapper(async (req, res, next) => {
     });
 });
 
+
 const submitQuiz = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     sanitizeInput(req.body);
@@ -144,14 +144,31 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
     const studentId = req.user.id;
     const found = await student.findStudentById(studentId);
     const {quizId} = req.params;
-    const newSub= await quiz.createSubmission(quizId, studentId,found.assistantId ,answers, found.semester);
+    if(req.submitted==="false"){
+        console.log("Creating new submission");
+        const newSub= await quiz.createSubmission(quizId, studentId,found.assistantId ,answers, found.semester);
 
-    return res.status(200).json({
+        return res.status(200).json({
         status: "success",
         data: { message: "Quiz submitted successfully" ,
         id: newSub.id  
-        }
-    });
+            }
+        });
+    }
+    else{
+        console.log("Updating existing submission");
+        const submission = await quiz.findSubmissionByQuizAndStudent(quizId,studentId);
+        submission.answers = answers;
+        await submission.save();
+        return res.status(200).json({
+        status: "success",
+        data: { message: "Quiz resubmitted successfully" ,
+        id: submission.id  
+            }
+        });
+    }
+
+    
 });
 
 const modifyQuiz = asyncWrapper(async (req, res, next) => {
