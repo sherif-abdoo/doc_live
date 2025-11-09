@@ -128,6 +128,7 @@ const submitAssignment = asyncWrapper(async (req, res) => {
 
       const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId,studentId);
       submission.answers = answers;
+      submission.subDate = new Date();
       await submission.save();
       return res.status(200).json({
         status: "success",
