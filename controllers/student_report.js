@@ -60,7 +60,7 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
           message: "Topic not found"
         });
       }
-      if (topic.group !== studentData.group) {
+      if (topic.group !== studentData.group && topic.group !== "all") {
         return res.status(403).json({
           status: "error",
           message: "You are not authorized to access this topic"
