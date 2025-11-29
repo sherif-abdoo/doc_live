@@ -159,6 +159,7 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
         console.log("Updating existing submission");
         const submission = await quiz.findSubmissionByQuizAndStudent(quizId,studentId);
         submission.answers = answers;
+        submission.subDate = new Date();
         await submission.save();
         return res.status(200).json({
         status: "success",
