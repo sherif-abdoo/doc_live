@@ -26,7 +26,15 @@ const forgetPassword = asyncwrapper(async (req, res, next) => {
         else {
             // in this case email is in the data base and it didn't request an otp
             const otp = generateOTP();// generate otp
-            sengGrid.sendOTPEmail(email,otp);// send email with the otp
+            try {
+                const result = await sengGrid.sendOTPEmail(email, otp); // WAIT for the email
+            } 
+            catch (error) {
+                console.error("Email sending failed:", error);
+                return res.status(500).json({
+                    status: "Email service unavailable. Try again later.",
+                });
+            }// send email with the otp
             User.addOTP(email,otp);
             res.json({
                 status: "success",
