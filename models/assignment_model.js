@@ -8,7 +8,9 @@ const Assignment = sequelize.define('Assignment', {
   title: DataTypes.STRING,
   description: DataTypes.TEXT,
   mark: DataTypes.INTEGER,
-  document: DataTypes.STRING,
+  document: {
+    tyep:DataTypes.STRING,
+    allowNull: true,},
   startDate: DataTypes.DATE,
   endDate: DataTypes.DATE,
   semester: DataTypes.STRING,
