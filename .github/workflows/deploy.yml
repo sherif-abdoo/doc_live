@@ -1,103 +1,45 @@
-name: Debug Backend Deploy
+name: Deploy Backend
 
 on:
-  workflow_dispatch:  # run manually from the Actions tab
+  push:
+    branches: [ "main" ]  # change if your default branch is different
 
 jobs:
-  debug-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug deploy over SSH
+      - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # show each command before executing it
-            set -ex
-
-            echo "==> whoami:"
-            whoami
-
-            echo "==> HOME: $HOME"
-            echo "==> BACKEND_PATH (from secrets): ${{ secrets.BACKEND_PATH }}"
-
-            echo "==> Listing home dir:"
-            ls -la "$HOME" || true
-
-            # 1) Try to load nvm
+            set -e
+            # 1) Load nvm in non-login shell
             export NVM_DIR="$HOME/.nvm"
-            echo "==> NVM_DIR=$NVM_DIR"
-            if [ -s "$NVM_DIR/nvm.sh" ]; then
-              echo "==> Loading nvm..."
-              . "$NVM_DIR/nvm.sh"
-            else
-              echo "⚠️ nvm.sh not found at $NVM_DIR" >&2
-            fi
-
-            echo "==> Node version (if any):"
-            node -v || echo "❌ node not found"
-
-            echo "==> npm version (if any):"
-            npm -v || echo "❌ npm not found"
-
-            echo "==> pm2 version (if any):"
-            pm2 -v || echo "⚠️ pm2 not found yet"
-
-            # 2) Go to backend path
-            echo "==> cd to backend path"
-            cd "${{ secrets.BACKEND_PATH }}"
-            echo "==> pwd:"
-            pwd
-
-            echo "==> Listing project dir:"
-            ls -la
-
-            echo "==> Git remote -v:"
-            git remote -v || true
-
-            echo "==> Git status:"
-            git status || true
-
-            echo "==> git fetch --all"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            # 2) Ensure Node is available (use 20.x or whatever you prefer)
+            nvm install 20
+            nvm use 20
+            # 3) Ensure pm2 exists
+            command -v pm2 >/dev/null 2>&1 || npm i -g pm2
+            # 4) Deploy
+            cd ${{ secrets.BACKEND_PATH }}
             git fetch --all
-
-            echo "==> git reset --hard origin/main"
-            git reset --hard origin/main
-
-            echo "==> package*.json present?"
-            ls package*.json || true
-
-            # 3) Install deps
+            git reset --hard origin/main   # change to origin/master if needed
             if [ -f package-lock.json ]; then
-              echo "==> Running: npm ci --omit=dev"
               npm ci --omit=dev
             else
-              echo "==> Running: npm install --omit=dev"
               npm install --omit=dev
             fi
-
-            echo "==> Quick Node test"
-            node -e 'console.log("Node app can start")'
-
-            # 4) Ensure pm2 exists
-            if ! command -v pm2 >/dev/null 2>&1; then
-              echo "==> Installing pm2 globally..."
-              npm i -g pm2
-            fi
-
-            echo "==> pm2 version after ensure:"
-            pm2 -v
-
-            echo "==> pm2 restart/start backend"
+            # Optional: run migrations
+            # npx sequelize db:migrate || true
+            # npx prisma migrate deploy || true
             pm2 restart backend || pm2 start "npm start" --name backend
-
-            echo "==> pm2 save"
             pm2 save
 
-            echo "✅ Debug deploy script finished"
+create a new workflow file that helps with debugging 
