@@ -19,32 +19,27 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-
             # 1) Load nvm in non-login shell
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-
             # 2) Ensure Node is available (use 20.x or whatever you prefer)
             nvm install 20
             nvm use 20
-
             # 3) Ensure pm2 exists
             command -v pm2 >/dev/null 2>&1 || npm i -g pm2
-
             # 4) Deploy
             cd ${{ secrets.BACKEND_PATH }}
             git fetch --all
             git reset --hard origin/main   # change to origin/master if needed
-
             if [ -f package-lock.json ]; then
               npm ci --omit=dev
             else
               npm install --omit=dev
             fi
-
             # Optional: run migrations
             # npx sequelize db:migrate || true
             # npx prisma migrate deploy || true
-
             pm2 restart backend || pm2 start "npm start" --name backend
             pm2 save
+
+create a new workflow file that helps with debugging 
