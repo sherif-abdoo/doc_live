@@ -9,7 +9,7 @@ const Assignment = sequelize.define('Assignment', {
   description: DataTypes.TEXT,
   mark: DataTypes.INTEGER,
   document: {
-    tyep:DataTypes.STRING,
+    type:DataTypes.STRING,
     allowNull: true,},
   startDate: DataTypes.DATE,
   endDate: DataTypes.DATE,
