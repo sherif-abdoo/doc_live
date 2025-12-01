@@ -46,7 +46,7 @@ const checkField = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Semester must be a non-empty string", httpStatus.BAD_REQUEST));
     }
     console.log("chack 7 done, semester valid")
-    
+
     next();
 })
 
@@ -86,7 +86,7 @@ const submittedBefore = asyncWrapper(async (req, res, next) => {
     const submission = await assignment.findSubmissionByAssignmentAndStudent(assId,studentId);
     req.submitted = "false";
     if(submission){
-       req.submitted = "true";
+        req.submitted = "true";
     }
     console.log("User has not submitted this assignment before");
     next();
