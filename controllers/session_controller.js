@@ -143,6 +143,7 @@ const getActiveSession = asyncWrapper(async (req, res, next) => {
     data: { activeSession },
   });
 });
+//dd
 
 const getLastCreatedSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
