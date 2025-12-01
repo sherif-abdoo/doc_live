@@ -176,6 +176,12 @@ function getAdminNameById(adminId){
     });
 }
 
+function getAllAdmins(){
+    return Admin.findAll({
+        attributes: ['adminId', ['name','adminName'],['email','adminEmail'], ['phoneNumber','adminPhoneNumber'], 'group']
+    });
+}
+
 module.exports={
     create,
     findNotVerifiedStudentsByTaGroup,
@@ -202,4 +208,5 @@ module.exports={
     getAdminById,
     findAdminByPhoneNumber,
     getAdminNameById,
+    getAllAdmins
 }

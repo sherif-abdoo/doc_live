@@ -9,8 +9,8 @@ const { Op } = require("sequelize");
 Material.belongsTo(Admin, { foreignKey: "publisher" });
 Material.belongsTo(Topic, { foreignKey: 'topicId' });
 
-function createMaterial (title, description, document, topicId, publisher, uploadDate) {
-    return Material.create({title, description, document, topicId, publisher, uploadDate});
+function createMaterial (title, description, document, link, topicId, publisher, uploadDate) {
+    return Material.create({title, description, document, link, topicId, publisher, uploadDate});
 } 
 
 function getMaterialById(materialId) {
@@ -20,6 +20,17 @@ function getMaterialById(materialId) {
         { model: Topic, attributes: ['subject'] }
     ],
     attributes: {include : [['materialId', 'id']]}});
+}
+
+async function getAllMaterialsAllGroups() {
+  return await Material.findAll({
+    include: [
+      { model: Admin, attributes: ['group'] },
+      { model: Topic, attributes: ['subject'] }
+    ],
+    attributes: { include: [['materialId', 'id']] },
+    order: [['materialId', 'DESC']]
+  });
 }
 
 async function getAllMaterialsByGroup(group) {
@@ -89,5 +100,6 @@ module.exports = {
     updateMaterial,
     deleteMaterial,
     getMaterialByTopicId,
-    deleteMaterialBySemester
+    deleteMaterialBySemester,
+    getAllMaterialsAllGroups
 };

@@ -3,6 +3,9 @@ const router = express.Router();
 const dokmiddleware = require('../middleware/dok_middleware');
 const topicMiddleWare = require('../middleware/topic_middleware');
 const DOK = require('../controllers/dok_controller.js');
+const assignControllers = require('../controllers/assignment_controller');
+const quizControllers = require('../controllers/quiz_controller');
+
 const auth = require('../middleware/auth_middleware');
 
 router.route('/signUp')
@@ -28,6 +31,15 @@ router.route('/assignGroupToAssistant/:id')
 
 router.route('/createNewGroup')
     .post(auth.adminProtect, dokmiddleware.checkRole, DOK.createNewGroup);
+
+router.route('/deleteGroup/:groupName')
+    .delete(auth.adminProtect, dokmiddleware.checkRole, DOK.deleteGroup);
+
+router.route('/deleteAllAssignmentsSubmission')
+    .delete(auth.adminProtect, dokmiddleware.checkRole , assignControllers.deleteAllAssignmentSubmissionsFunc);
+
+router.route('/deleteAllQuizSubmission')
+    .delete(auth.adminProtect, dokmiddleware.checkRole , quizControllers.deleteAllQuizSubmissionsFunc);        
 
 router.route('/deleteBySemester')
     .delete(auth.adminProtect, dokmiddleware.checkRole, topicMiddleWare.checkSemester, DOK.deleteSemester);

@@ -86,11 +86,13 @@ const canAccessActiveSession = asyncWrapper(async (req, res, next) => {
 
 const activeSessionExists = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group; // consistent naming
-    const activeSession = await session.getActiveSessionByAGroup(userGroup);
-
+    let activeSession = await session.getActiveSessionByAGroup(userGroup);
+    
     if (!activeSession) {
+        activeSession = await session.getActiveSessionByAGroup('all');
+        if (!activeSession) {
         return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
-    }
+    }}
 
     console.log("Active session found:", activeSession);
     req.activeSession = activeSession;

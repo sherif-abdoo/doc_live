@@ -48,10 +48,20 @@ function deleteSubmissionBySemester(semester) {
   });
 }
 
+function deleteAllAssignmentSubmissions(){
+    return Submission.destroy({ where: { type: 'assignment' } });
+}
+
+function deleteAllQuizSubmissions(){
+    return Submission.destroy({ where: { type: 'quiz' } });
+}
+
 module.exports = { 
     getSubmissionForAssignment,
     getSubmissionForQuiz,
     deleteSubmissionBySemester,
-    getSubmissionsByStudentId
+    getSubmissionsByStudentId,
+    deleteAllAssignmentSubmissions,
+    deleteAllQuizSubmissions
 }
 

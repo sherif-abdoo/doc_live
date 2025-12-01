@@ -18,10 +18,11 @@ const {sanitizeInput}= require('../utils/sanitize.js');
 const createAssignment = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const {mark, document,  endDate, semester, topicId, title, description}= req.body;
+    const nmark = Number(mark);
     const startDate = new Date(); // current date
     const publisher = req.admin.id;
     const createdAssignment = await assignment.createAssignment
-    (mark, document, startDate, endDate, semester, publisher,topicId, title, description) //7aga
+    (nmark, document, startDate, endDate, semester, publisher,topicId, title, description) //7aga
     return res.status(201).json({
         status: "success" ,
         data: { message: "assignment created successfully", id: createdAssignment.assignId },
@@ -112,14 +113,30 @@ const submitAssignment = asyncWrapper(async (req, res) => {
     const studentId = req.student.id;
     const found = await student.findStudentById(studentId);
     const {assignId} = req.params;
-    const newSub= await assignment.createSubmission(assignId, studentId,found.assistantId ,answers, found.semester);
-
-    return res.status(200).json({
+    if(req.submitted==="false"){
+      console.log("Creating new submission");
+      const newSub= await assignment.createSubmission(assignId, studentId,found.assistantId ,answers, found.semester);
+      return res.status(200).json({
         status: "success",
         data: { message: "Assignment submitted successfully" ,
             id: newSub.id
         }
     });
+    }
+    else{
+      console.log("Updating existing submission");
+
+      const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId,studentId);
+      submission.answers = answers;
+      submission.subDate = new Date();
+      await submission.save();
+      return res.status(200).json({
+        status: "success",
+        data: { message: "Assignment resubmitted successfully" ,
+            id: submission.id
+        }
+    });
+  }
 })
 
 
@@ -162,7 +179,13 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
 });
 
 
-
+const deleteAllAssignmentSubmissionsFunc = asyncWrapper(async (req, res, next) => {
+    await submissions.deleteAllAssignmentSubmissions();
+    return res.status(200).json({
+        status: "success",
+        data: { message: "All submissions for the assignment deleted successfully" }
+    });
+});
 
 
 const deleteAssignment = asyncWrapper(async (req, res, next) => {
@@ -199,5 +222,6 @@ module.exports={
     submitAssignment,
     getUnsubmittedAssignments,
     deleteAssignment,
-    modifyAssignment
+    modifyAssignment,
+    deleteAllAssignmentSubmissionsFunc
 }

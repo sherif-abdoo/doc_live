@@ -5,7 +5,7 @@ const Quiz = require('../models/quiz_model');
 const Admin = require('../models/admin_model');
 const Submission = require('../models/submission_model');
 const Topic = require('../models/topic_model');
-
+//ggg
 Quiz.belongsTo(Admin, { foreignKey: "publisher" });
 Quiz.belongsTo(Topic, { foreignKey: "topicId", as: 'topic' });
 
@@ -16,13 +16,16 @@ function createQuiz(mark,publisher,date,semester,durationInMin,topicId, title){
 
 function getAllQuizzes(){
     return Quiz.findAll({attributes : {include: [
-        ['quizId', 'id'],
+        ['quizId', 'id'],[Sequelize.col('Admin.group'), 'group'],[Sequelize.col('topic.subject'), 'subject']
     ]},
     include: [
       {
         model: Topic,
         as: 'topic', // only needed if you used 'as' in association
-        attributes: ['subject'] // or ['name'], depending on your column
+        attributes: [] // or ['name'], depending on your column
+      },{
+        model: Admin,
+        attributes: [] // no "where" — show all admins' quizzes
       }
     ],
      order: [['quizId', 'DESC']]});

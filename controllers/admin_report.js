@@ -36,15 +36,16 @@ const createReport = async (req, res) => {
     const assistantId = req.admin.id;
 
     // 🔍 Validate topic exists and belongs to this assistant
-    const topic = await topicDl.getTopicByAssistantId(topicId, assistantId);
+    const topic = await topicDl.getTopicById(topicId);
     if (!topic) {
       return res.status(404).json({
         error: 'Topic not found or not owned by this assistant.'
       });
     }
-    if (topic.group !== req.admin.group && req.admin.group !== 'all') {
+    if (topic.group !== req.admin.group && req.admin.group !== 'all' && topic.group !== 'all') {
       return res.status(403).json({ error: 'You are not authorized to access this topic.' });
     }
+    const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
     let students = [];  
     // 👥 Get all students assigned to this assistant
     if(req.admin.group === 'all'){
@@ -69,7 +70,6 @@ const createReport = async (req, res) => {
     const numberOfAssignments = assignments.length;
 
     const studentIds = students.map(s => s.studentId);
-
     // 📤 Build submission query conditions
     let submissionConditions = [];
     const assignmentIds = assignments.map(a => a.assignId);
@@ -108,37 +108,39 @@ const createReport = async (req, res) => {
 
     const grading = getGradingSystem();
 
-    // 👨‍🎓 Generate report for each student
-    const studentReports = students.map(st => {
-      // 🔹 Quiz data
-      const quizScore = submissionsMap[`Q-${st.studentId}`];
-      let percentage = 'missing';
-      let grade = 'missing';
-      if (quizScore != null && quizTotalScore > 0) {
-        percentage = parseFloat(((quizScore / quizTotalScore) * 100).toFixed(2));
-        grade = grading.calculateGrade(percentage);
-      }
+  const studentReports = await Promise.all(students.map(async (st) => {
+  // 🔹 Quiz data
+  const quizScore = submissionsMap[`Q-${st.studentId}`];
+  let percentage = 'missing';
+  let grade = 'missing';
+  if (quizScore != null && quizTotalScore > 0) {
+    percentage = parseFloat(((quizScore / quizTotalScore) * 100).toFixed(2));
+    grade = grading.calculateGrade(percentage);
+  }
 
-      // 🔹 Assignment summary: count submitted
-      const assignmentList = assignments.map(ass => ({
-        id: ass.assignId,
-        title: ass.title,
-        status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null 
-        ? "done" 
-        : "missing"
-      }));
+  const attendedSessions = await sessionDl.countAttendedSessionsByTopic(st.studentId, topic.topicId);
 
-      return {
-        id: st.studentId,
-        email: st.studentEmail,
-        studentName: st.studentName,
-        banned: st.banned,
-        quizScore: quizScore ?? 'missing',
-        percentage,
-        grade,
-        assignments: assignmentList // e.g., "2/3"
-      };
-    });
+  const assignmentList = assignments.map(ass => ({
+    id: ass.assignId,
+    title: ass.title,
+    status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null 
+      ? "done" 
+      : "missing"
+  }));
+
+  return {
+    id: st.studentId,
+    email: st.studentEmail,
+    studentName: st.studentName,
+    banned: st.banned,
+    quizScore: quizScore ?? 'missing',
+    percentage,
+    grade,
+    attended: attendedSessions,
+    assignments: assignmentList
+  };
+}));
+
     
     // 📤 Final response
       return res.json({
@@ -147,6 +149,7 @@ const createReport = async (req, res) => {
       quizTitle: quizzes?.title ?? 'No quiz',
       quizTotalScore ,
       numberOfAssignments,
+      totalSession:topicSessions,
       students: studentReports
     });
 

@@ -48,7 +48,8 @@ const findTopicById = asyncWrapper(async (req, res, next) => {
 const canSeeTopic= asyncWrapper(async (req, res, next) => {
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    if(req.user.group !== adminf.group){
+    
+    if(req.user.group !== adminf.group && req.user.group!=="all" && adminf.group !=="all"){
         return next(new AppError("You do not have permission to view this topic", httpStatus.FORBIDDEN));
     }
     console.log("User can see topic");
@@ -60,7 +61,7 @@ const canUpdateTopic = asyncWrapper(async (req, res, next) => {
     console.log("Admin group:", group);
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    if(group !== adminf.group){
+    if(group !== adminf.group && group !== "all"){
         return next(new AppError("You do not have permission to update this topic", httpStatus.FORBIDDEN));
     }
     next();
@@ -71,8 +72,8 @@ const checkData = asyncWrapper(async (req, res, next) => {
     const {  semester, subject } = req.body;
     if(semester){ 
         const toLow= semester.toLowerCase();
-    if(toLow!== "june" && toLow !== "november"){
-        return next(new AppError("Semester must be either 'June' or 'November'", httpStatus.BAD_REQUEST));
+    if(toLow!== "jun" && toLow !== "nov"){
+        return next(new AppError("Semester must be either 'Jun' or 'Nov'", httpStatus.BAD_REQUEST));
     }}
 
     if(subject){

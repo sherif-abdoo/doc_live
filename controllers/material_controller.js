@@ -12,18 +12,18 @@ const Student = require('../models/student_model.js');
 const Topic = require('../models/topic_model.js');
 const topic = require('../data_link/topic_data_link.js');
 const Material = require('../models/material_model');
-const material = require('../data_link/material_data_link');
+const material = require('../data_link/material_data_link.js');
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
 
 const createMaterial = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {title, description, document, topicId} = req.body;
+    const {title, description, document, link, topicId} = req.body;
     const publisher = req.admin.id;
     const uploadDate = new Date();
     const foundTopic = await topic.getTopicById(topicId);
-    console.log("Creating material with data:", { title, description, document, topicId, publisher, uploadDate });
-    const newMaterial = await material.createMaterial(title, description, document, topicId, publisher, uploadDate);
+    console.log("Creating material with data:", { title, description, document, link, topicId, publisher, uploadDate });
+    const newMaterial = await material.createMaterial(title, description, document, link, topicId, publisher, uploadDate);
     // ✅ Create a new response object that includes subject
     const materialWithSubject = {
         ...newMaterial.toJSON ? newMaterial.toJSON() : newMaterial, // Handle ORM instances
@@ -37,11 +37,27 @@ const createMaterial = asyncWrapper(async (req, res, next) => {
 });
 
 const getAllMaterials = asyncWrapper(async (req, res, next) => {
-    const materials = await material.getAllMaterialsByGroup(req.user.group);
+    const group = req.user.group;
+    const materials = (group === 'all'
+        ? await material.getAllMaterialsAllGroups()
+        : await material.getAllMaterialsByGroup(group));
+    
+    const materialsWithType = materials.map(mat => {
+        // Convert Sequelize instance to plain object
+        const materialData = mat.toJSON ? mat.toJSON() : JSON.parse(JSON.stringify(mat));
+        const documentUrl = materialData.document || '';
+    
+        const last4Chars = documentUrl.slice(-4).toLowerCase();
+        const materialType = last4Chars === '.pdf' ? 'pdf' : 'url';
+        materialData.type = materialType;
+        
+        return materialData;
+    });
+    
     return res.status(200).json({
         status: "success",
-        results: materials.length,
-        data: { materials }
+        results: materialsWithType.length,
+        data: { materials: materialsWithType }
     });
 
 });

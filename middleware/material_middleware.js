@@ -14,6 +14,7 @@ const material = require('../data_link/material_data_link.js');
 const topic = require('../data_link/topic_data_link.js');
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
+const { link } = require('fs');
 
 const checkTopicExists = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
@@ -27,8 +28,8 @@ const checkTopicExists = asyncWrapper(async (req, res, next) => {
 
 const checkInputData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const { title, description, document, topicId } = req.body; 
-    if (!title || !description || !document || !topicId) {
+    const { title, description, document, link, topicId } = req.body; 
+    if (!title || !topicId ) {
         return next(new AppError("Missing required fields: title, description, document, topicId", httpStatus.BAD_REQUEST));
     }
     next();
@@ -50,7 +51,7 @@ const canSeeMaterial = asyncWrapper(async (req, res, next) => {
     const materialf = req.found;
     const userGroup = req.user.group;
     const publisher = await admin.getAdminById(materialf.publisher);
-    if (publisher.group !== 'all' && publisher.group !== userGroup) {
+    if (publisher.group !== 'all' && publisher.group !== userGroup&& userGroup !== 'all') {
         return next(new AppError("You do not have permission to view this material", httpStatus.FORBIDDEN));
     }
     console.log("User can see material");
@@ -61,8 +62,8 @@ const AdminViewMaterial = asyncWrapper(async (req, res, next) => {
     const materialf = req.found;
     const userGroup = req.admin.group;
     const publisher = await admin.getAdminById(materialf.publisher);
-    if (publisher.group !== 'all' && publisher.group !== userGroup) {
-        return next(new AppError("You do not have permission to view this material", httpStatus.FORBIDDEN));
+    if (userGroup !== 'all' && publisher.group !== userGroup) {
+        return next(new AppError("You do not have permission to modify this material", httpStatus.FORBIDDEN));
     }
     console.log("User can see material");
     next();

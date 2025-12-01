@@ -14,12 +14,12 @@ const checkField = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const {mark, document,  endDate, semester, topicId, title, description}= req.body;
     const nmark = Number(mark);
-    if (nmark == null || document == null || semester == null || endDate == null || topicId == null || title == null || description == null) {
+    if (semester == null || topicId == null || title == null) {
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
     }
     console.log("chack 1 done, all fields present")
 
-    if (typeof nmark !== 'number' || nmark < 0) {
+    if (typeof nmark !== 'number' || nmark <0) {
         return next(new AppError("Mark must be a non-negative number", httpStatus.BAD_REQUEST));
     }
     console.log("chack 2 done, mark valid")
@@ -46,6 +46,7 @@ const checkField = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Semester must be a non-empty string", httpStatus.BAD_REQUEST));
     }
     console.log("chack 7 done, semester valid")
+    
     next();
 })
 
@@ -83,8 +84,9 @@ const submittedBefore = asyncWrapper(async (req, res, next) => {
     const assId = req.params.assignId;
     const studentId= req.student.id;
     const submission = await assignment.findSubmissionByAssignmentAndStudent(assId,studentId);
+    req.submitted = "false";
     if(submission){
-        return next(new AppError("You cannot submit same assignment twice", httpStatus.FORBIDDEN));
+       req.submitted = "true";
     }
     console.log("User has not submitted this assignment before");
     next();
