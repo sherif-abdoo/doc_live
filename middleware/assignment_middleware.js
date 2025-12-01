@@ -25,15 +25,11 @@ const checkField = asyncWrapper(async (req, res, next) => {
     console.log("chack 2 done, mark valid")
 
     // quizPdf must be a valid URL ending with .pdf
-    if (document != null && document !== '') {
-        const pdfRegex = /^https?:\/\/.+\.pdf$/i;
-        if (typeof document !== 'string' || !pdfRegex.test(document.trim())) {
-            return next(new AppError("Assignment PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
-        }
-        console.log("check 3 done, pdf valid")
-    } else {
-        console.log("check 3 skipped, no pdf provided (optional)")
+    const pdfRegex = /^https?:\/\/.+\.pdf$/i;
+    if (typeof document !== 'string' || !pdfRegex.test(document.trim())) {
+        return next(new AppError("Assignment PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
     }
+    console.log("chack 3 done, pdf valid")
 
     const parsedDate2 = new Date(endDate);
     if (parsedDate2.toString() === "Invalid Date") {
