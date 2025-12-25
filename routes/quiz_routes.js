@@ -9,7 +9,7 @@ router.route('/createQuiz')
     .post(auth.adminProtect, quizMiddleWare.checkFields,checkSemester ,quizControllers.createQuiz);
 
 router.route('/getAllQuizzes')
-    .get(auth.protect,quizMiddleWare.getGroup ,quizControllers.getAllQuizzes);
+    .get(auth.protect,quizControllers.getAllQuizzes);
 
 router.route('/get_quiz_by_id/:quizId')
     .get(auth.protect, quizMiddleWare.quizExists,quizMiddleWare.canSeeQuiz ,quizControllers.getQuizById);
