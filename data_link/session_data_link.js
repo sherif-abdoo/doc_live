@@ -207,8 +207,9 @@ function getActiveSessionByAGroup(group) {
   });
 }
 
+
 function getLastCreatedSessionByGroup(adminGroup){
-  if(adminGroup==="all"|| !adminGroup)  {
+  if(adminGroup==="all")  {
     return Session.findOne({
         order: [['dateAndTime', 'DESC']]
     });
