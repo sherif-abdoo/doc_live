@@ -37,7 +37,7 @@ const getAllQuizzes = asyncWrapper(async (req, res) => {
     console.log("Fetching quizzes for group:", group);
 
     // Get all quizzes based on group
-    const quizzes = group === 'all' ? await quiz.getAllQuizzes() : await quiz.getAllQuizzesForGroup(group);
+    const quizzes =  await quiz.getAllQuizzes();
      const quizzesWithSubmission = [];
     if (req.user.type === "student" || req.user.type === "assistant") {
        
