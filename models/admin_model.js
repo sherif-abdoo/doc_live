@@ -17,5 +17,7 @@ const Admin = sequelize.define('Admin', {
   timestamps: false
 });
 
+//for devop testing
+
 module.exports = Admin;
 
