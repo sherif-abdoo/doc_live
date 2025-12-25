@@ -13,8 +13,14 @@ function getTopicById(topicId) {
     return Topic.findOne({ where: { topicId } });
 }
 
-function getStudentLastTopic(group) {
-    return Topic.findOne({where:{group},
+async function getStudentLastTopic(group) {
+    const lastTopic =  await Topic.findOne({where:{group},
+        order: [['createdAt', 'DESC']]
+    });
+    if(lastTopic) {
+        return lastTopic;
+    }
+    return await Topic.findOne({where:{group:'all'},
         order: [['createdAt', 'DESC']]
     });
 }
