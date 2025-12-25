@@ -147,9 +147,10 @@ const getActiveSession = asyncWrapper(async (req, res, next) => {
 
 const getLastCreatedSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
+
     const lastSession = await session.getLastCreatedSessionByGroup(adminGroup);
     if (!lastSession) {
-        return next(new AppError("No sessions found for your group", httpStatus.Success));
+        return next(new AppError("No sessions found for your group", httpStatus.NOT_FOUND));
     }
     return res.status(200).json({
         status: "success",
