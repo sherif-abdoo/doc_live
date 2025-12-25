@@ -42,4 +42,3 @@ jobs:
             pm2 restart backend || pm2 start "npm start" --name backend
             pm2 save
 
-create a new workflow file that helps with debugging 
