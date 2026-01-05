@@ -22,7 +22,7 @@ router.route('/attendSession')
 //     .get(auth.studentProtect, sessionMiddleWare.upcomingSession, sessionControllers.getUpcomingSession);
 
 router.route('/startSession')
-    .post(auth.adminProtect, sessionMiddleWare.preventMultipleActiveSessions,sessionControllers.startSession);
+    .post(auth.adminProtect,sessionControllers.startSession);
 
 router.route('/endSession') 
     .patch(auth.adminProtect, sessionControllers.endSession);
