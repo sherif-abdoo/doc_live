@@ -113,6 +113,7 @@ const upcomingSession = asyncWrapper(async (req, res, next) => {
   next();
 });
 
+/*
 const preventMultipleActiveSessions = asyncWrapper(async (req, res, next) => {
   const adminGroup = req.admin.group;
   // Check for an unfinished session within last 2.5 hours
@@ -127,6 +128,7 @@ const preventMultipleActiveSessions = asyncWrapper(async (req, res, next) => {
   }
   next();
 });
+*/
 
 module.exports = {
     sessionFound,
@@ -135,5 +137,5 @@ module.exports = {
     canAccessActiveSession,
     activeSessionExists,
     upcomingSession,
-    preventMultipleActiveSessions
+    //preventMultipleActiveSessions
 }
