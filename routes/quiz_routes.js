@@ -12,7 +12,7 @@ router.route('/getAllQuizzes')
     .get(auth.protect,quizControllers.getAllQuizzes);
 
 router.route('/get_quiz_by_id/:quizId')
-    .get(auth.protect, quizMiddleWare.quizExists,quizMiddleWare.canSeeQuiz ,quizControllers.getQuizById);
+    .get(auth.protect, quizMiddleWare.quizExists ,quizControllers.getQuizById);
 
 router.route('/startQuiz/:quizId')
     .get(auth.adminProtect, quizMiddleWare.quizExists,quizMiddleWare.canAccessQuiz ,quizControllers.startQuiz);
@@ -25,7 +25,7 @@ router.route('/submitActiveQuiz/')
         quizMiddleWare.verifySubmissionTiming, quizMiddleWare.verifySubmissionPDF ,quizControllers.submitActiveQuiz);
 
 router.route('/submitQuiz/:quizId')
-        .post(auth.protect, quizMiddleWare.quizExists, quizMiddleWare.canSeeQuiz ,
+        .post(auth.protect, quizMiddleWare.quizExists ,
         quizMiddleWare.submittedBefore, quizMiddleWare.verifySubmissionPDF ,quizControllers.submitQuiz)
 
 router.route('/modifyQuiz/:quizId')
