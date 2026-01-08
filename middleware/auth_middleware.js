@@ -36,7 +36,7 @@ const adminProtect = async (req, res, next) => {
     if (!admin) {
       return next(new AppError('Admin not found', 401));
     }
-    req.admin = admin;
+    req.admin = decoded;
     console.log("admin protect finished") // attach payload
     next();
   } catch (error) {
