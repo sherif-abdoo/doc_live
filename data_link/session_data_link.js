@@ -194,13 +194,13 @@ function deleteSessionsBySemester(semester) {
 
 function getActiveSessionByAGroup(group) {
   const now = new Date();
-  const fiveHoursAgo = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   return Session.findOne({
     where: {
       finished: false,
       group: group,
       dateAndTime: {
-        [Op.between]: [fiveHoursAgo, now],
+        [Op.between]: [oneDayAgo, now],
       },
     },
     order: [['dateAndTime', 'DESC']],
@@ -222,13 +222,13 @@ function getLastCreatedSessionByGroup(adminGroup){
 
 async function existingSession(adminGroup){
   const now = new Date();
-  const twoAndHalfHoursAgo = new Date(now.getTime() - 2.5 * 60 * 60 * 1000);
+  const twelveAgo = new Date(now.getTime() - 12.5 * 60 * 60 * 1000);
   return await Session.findOne({
     where: {
       finished: false,
       group: adminGroup,
       dateAndTime: {
-        [Op.between]: [twoAndHalfHoursAgo, now],
+        [Op.between]: [twelveAgo, now],
       },
     },
   })};
