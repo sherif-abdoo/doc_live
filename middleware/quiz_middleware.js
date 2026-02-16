@@ -192,7 +192,7 @@ module.exports = {
     canAccessQuiz ,
     activeQuizExists ,
     canAccessActiveQuiz ,
-    verifySubmissionPDF,
+    //verifySubmissionPDF,
     verifySubmissionTiming,
     submittedBefore
 };
