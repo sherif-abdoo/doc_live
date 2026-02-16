@@ -18,7 +18,7 @@ router.route('/get_assignment_by_id/:assignId')
 
 router.route('/submitAssignment/:assignId')
     .post(auth.studentProtect, assignMiddleWare.assignExists, assignMiddleWare.canSeeAssign ,
-        assignMiddleWare.submittedBefore, quizMiddleware.verifySubmissionPDF ,assignControllers.submitAssignment)
+        assignMiddleWare.submittedBefore,assignControllers.submitAssignment)
 
 router.route('/getUnsubmittedAssignments')
     .get(auth.studentProtect, assignControllers.getUnsubmittedAssignments)

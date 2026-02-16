@@ -22,7 +22,7 @@ router.route('/getActiveQuiz')
     
 router.route('/submitActiveQuiz/')
     .post(auth.protect, quizMiddleWare.activeQuizExists, quizMiddleWare.canAccessActiveQuiz ,quizMiddleWare.submittedBefore,
-        quizMiddleWare.verifySubmissionTiming, quizMiddleWare.verifySubmissionPDF ,quizControllers.submitActiveQuiz);
+        quizMiddleWare.verifySubmissionTiming,quizControllers.submitActiveQuiz);
 
 router.route('/submitQuiz/:quizId')
         .post(auth.protect, quizMiddleWare.quizExists ,
