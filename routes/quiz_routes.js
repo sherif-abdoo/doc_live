@@ -26,7 +26,7 @@ router.route('/submitActiveQuiz/')
 
 router.route('/submitQuiz/:quizId')
         .post(auth.protect, quizMiddleWare.quizExists ,
-        quizMiddleWare.submittedBefore, quizMiddleWare.verifySubmissionPDF ,quizControllers.submitQuiz)
+        quizMiddleWare.submittedBefore,quizControllers.submitQuiz)
 
 router.route('/modifyQuiz/:quizId')
         .patch(auth.adminProtect, quizMiddleWare.quizExists,quizMiddleWare.canAccessQuiz ,quizControllers.modifyQuiz)

@@ -152,6 +152,7 @@ const canAccessActiveQuiz = asyncWrapper(async (req, res, next) => {
     next();
 });
 
+/*
 const verifySubmissionPDF = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { answers } = req.body;
@@ -166,7 +167,7 @@ const verifySubmissionPDF = asyncWrapper(async (req, res, next) => {
     console.log("valid Pdf");
     next();
 });
-
+*/
 
 const verifySubmissionTiming = asyncWrapper(async (req, res, next) => {
     const activeQuiz = req.quizData;
