@@ -14,6 +14,7 @@ const topic = require('../data_link/topic_data_link.js');
 const { Op } = require("sequelize");
 const material = require('../data_link/material_data_link.js'); 
 const { sanitizeInput } = require('../utils/sanitize.js');
+const Session = require('../models/session_model.js');
 
 const createTopic = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
@@ -119,6 +120,9 @@ const updateTopic = asyncWrapper(async (req, res, next) => {
 
 const deleteTopic = asyncWrapper(async (req, res, next) => {
     const found = req.found;  
+     await Session.destroy({
+        where: { topicId: found.topicId }
+    });
     await found.destroy();
     res.status(200).json({ status: "success", 
         message: `topic with id: ${req.params.topicId} is deleted` });
