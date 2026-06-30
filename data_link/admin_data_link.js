@@ -7,16 +7,9 @@ const Registration = require('../models/registration_model');
 const Session = require('../models/session_model');
 const Feed = require('../models/feed_model');
 const Submission = require('../models/submission_model');
-const Assignment = require('../models/assignment_model');
-const Quiz = require('../models/quiz_model');
-const Topic = require('../models/topic_model');
 const { Op } = require('sequelize');
 
-// Associations needed for includes
-Submission.belongsTo(Quiz, { foreignKey: 'quizId' });
-Submission.belongsTo(Assignment, { foreignKey: 'assId' });
-Quiz.belongsTo(Topic, { foreignKey: 'topicId' });
-Assignment.belongsTo(Topic, { foreignKey: 'topicId' });
+
 
 function create(email, name, password, phoneNumber, group) {
     return Admin.create({
@@ -183,49 +176,11 @@ function getAllSubmissionsById(assistantId) {
 }
 
 function getAllMarkedSubmissions() {
-    return Submission.findAll({
-        where: { score: { [Op.ne]: null } },
-        include: [
-            {
-                model: Quiz,
-                attributes: ['title'],
-                required: false,
-                foreignKey: 'quizId',
-                include: [{ model: Topic, attributes: ['subject'] }]
-            },
-            {
-                model: Assignment,
-                attributes: ['title'],
-                required: false,
-                foreignKey: 'assId',
-                include: [{ model: Topic, attributes: ['subject'] }]
-            }
-        ],
-        order: [['subId', 'DESC']]
-    });
+    return Submission.findAll({ where: { score: { [Op.ne]: null } }, order: [['subId', 'DESC']] });
 }
 
 function getAllMarkedSubmissionsById(id) {
-    return Submission.findAll({
-        where: { assistantId: id, score: { [Op.ne]: null } },
-        include: [
-            {
-                model: Quiz,
-                attributes: ['title'],
-                required: false,
-                foreignKey: 'quizId',
-                include: [{ model: Topic, attributes: ['subject'] }]
-            },
-            {
-                model: Assignment,
-                attributes: ['title'],
-                required: false,
-                foreignKey: 'assId',
-                include: [{ model: Topic, attributes: ['subject'] }]
-            }
-        ],
-        order: [['subId', 'DESC']]
-    });
+    return Submission.findAll({ where: { assistantId: id, score: { [Op.ne]: null } }, order: [['subId', 'DESC']] });
 }
 
 
