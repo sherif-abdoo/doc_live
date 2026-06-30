@@ -1,5 +1,5 @@
 module.exports = db => {
-    const { Student, Admin, Quiz, Assignment, Submission, Session, Attendance, Registration, Feed,Topic, Material } = db;
+    const { Student, Admin, Quiz, Assignment, Submission, Session, Attendance, Registration, Feed, Topic, Material } = db;
 
     console.log("Setting up associations...");
     // ---------------- Student----------------
@@ -32,19 +32,19 @@ module.exports = db => {
     // Registration.belongsTo(Admin, { foreignKey: 'adminId' });
 
     // Admin - Session     
-    Admin.hasMany(Session, { foreignKey: 'adminId' }); 
+    Admin.hasMany(Session, { foreignKey: 'adminId' });
     Session.belongsTo(Admin, { foreignKey: 'adminId' });
 
     // Admin - Quiz
-    Admin.hasMany(Quiz, { foreignKey: 'publisher' }); 
+    Admin.hasMany(Quiz, { foreignKey: 'publisher' });
     Quiz.belongsTo(Admin, { foreignKey: 'publisher' });
 
     // Admin - Assignment
-    Admin.hasMany(Assignment, { foreignKey: 'publisher' }); 
+    Admin.hasMany(Assignment, { foreignKey: 'publisher' });
     Assignment.belongsTo(Admin, { foreignKey: 'publisher' });
 
     // Admin - Submission
-    Admin.hasMany(Submission, { foreignKey: 'adminId' }); 
+    Admin.hasMany(Submission, { foreignKey: 'adminId' });
     Submission.belongsTo(Admin, { foreignKey: 'adminId' });
 
     Admin.hasMany(Topic, { foreignKey: 'publisher' });
@@ -65,12 +65,12 @@ module.exports = db => {
 
 
     // ---------------- Quiz - Submission ----------------
-    Quiz.hasMany(Submission, { foreignKey: 'QuizId' }); // Submission.QuizId refers to Quiz.quizId
-    Submission.belongsTo(Quiz, { foreignKey: 'QuizId' });
+    Quiz.hasMany(Submission, { foreignKey: 'quizId' });
+    Submission.belongsTo(Quiz, { foreignKey: 'quizId' });
 
 
     // ---------------- Assignment - Submission ----------------
-    Assignment.hasMany(Submission, { foreignKey: 'asslId' }); // Submission.assId refers to Assignment.asslId
+    Assignment.hasMany(Submission, { foreignKey: 'assId' });
     Submission.belongsTo(Assignment, { foreignKey: 'assId' });
 
 
@@ -78,6 +78,6 @@ module.exports = db => {
     Session.hasMany(Attendance, { foreignKey: 'sessionId' });
     Attendance.belongsTo(Session, { foreignKey: 'sessionId' });
 
-    
+
     console.log("✅ All associations have been set up successfully!");
 };
