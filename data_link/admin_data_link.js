@@ -7,8 +7,9 @@ const Registration = require('../models/registration_model');
 const Session = require('../models/session_model');
 const Feed = require('../models/feed_model');
 const Submission = require('../models/submission_model');
+const { get } = require('../routes/admin_routes');
 
-function create(email,name,password,phoneNumber,group){
+function create(email, name, password, phoneNumber, group) {
     return Admin.create({
         email,
         name,
@@ -16,65 +17,65 @@ function create(email,name,password,phoneNumber,group){
         phoneNumber,
         group,
         role: "assistant",
-        permission:"limited",
+        permission: "limited",
     });
 }
 
-function findAdminByEmail(email){
-    return Admin.findOne({where : { email } })
+function findAdminByEmail(email) {
+    return Admin.findOne({ where: { email } })
 }
 
-function findByEmailAndId(studentEmail,id){
-    return Rejection.findOne({where: { studentEmail, adminId: String(id) } })
+function findByEmailAndId(studentEmail, id) {
+    return Rejection.findOne({ where: { studentEmail, adminId: String(id) } })
 }
 
 
-function Destroy (email){
+function Destroy(email) {
     return Rejection.destroy({
-        where: { studentEmail: email   }
+        where: { studentEmail: email }
     })
 }
 
-function registrationDestroy (email){
+function registrationDestroy(email) {
     return Registration.destroy({
-        where: { studentEmail: email   }
+        where: { studentEmail: email }
     })
 }
 
 
-function showPendingAdminRegistration(){
+function showPendingAdminRegistration() {
     return Admin.findAll({
-        where: { verified : false }
+        where: { verified: false }
     });
 }
 
-function createRejection(studentEmail,adminId,studentSemester){
+function createRejection(studentEmail, adminId, studentSemester) {
     Rejection.create({
         studentEmail: studentEmail,
-        adminId : adminId,
+        adminId: adminId,
         semester: studentSemester,
         dateAndTime: new Date(),
     });
 }
 
 
-function findRegistration(studentEmail){
+function findRegistration(studentEmail) {
     return Registration.findOne({
         where: { studentEmail: studentEmail }
     });
 }
 
-function verifyAssistant(email){
+function verifyAssistant(email) {
     return Admin.update({ verified: true }, { where: { email } });
 }
 
-function removeAssistant(email){
+function removeAssistant(email) {
     return Admin.destroy({
-        where: {email}
+        where: { email }
     });
 }
 
-function getAdminById(adminId){
+function getAdminById(adminId) {
     return Admin.findOne({
         where: { adminId }
     });
@@ -87,35 +88,38 @@ function createSession(topicId, group, semester, dateAndTime, day) {
         dateAndTime,
         group,
         day
-    })};
-    
+    })
+};
 
-function checkAssistantGroup(group){
+
+function checkAssistantGroup(group) {
     return Admin.findAll({
         where: { group, role: 'assistant' }
     });
 }
 
 
-function findNotVerifiedStudentsByTaGroup(TAGroup){
+function findNotVerifiedStudentsByTaGroup(TAGroup) {
     return Student.findAll({
-        where: {verified : false , group: TAGroup}});
+        where: { verified: false, group: TAGroup }
+    });
 }
 
-function findVerifiedStudentsByTaGroup(TAGroup){
+function findVerifiedStudentsByTaGroup(TAGroup) {
     if (TAGroup === 'all') {
         return Student.findAll({
             where: { verified: true }
         },
-    {attributes: ['studentId', 'name', 'email', 'group', 'semester','banned']}
-);
-    }   
+            { attributes: ['studentId', 'name', 'email', 'group', 'semester', 'banned'] }
+        );
+    }
     return Student.findAll({
-        where: {verified : true , group: TAGroup}},
-        {attributes: ['studentId', 'name', 'email', 'group', 'semester', 'banned']});
+        where: { verified: true, group: TAGroup }
+    },
+        { attributes: ['studentId', 'name', 'email', 'group', 'semester', 'banned'] });
 }
 
-function createPost(text,semester,adminId){
+function createPost(text, semester, adminId) {
     return Feed.create({
         text,
         semester,
@@ -124,30 +128,30 @@ function createPost(text,semester,adminId){
 }
 
 
-function Count(group){
+function Count(group) {
     return Admin.count({
         where: { group: group }
     });
 }
 
-function findAdminById(adminID ){
+function findAdminById(adminID) {
     return Admin.findOne({
         where: { adminId: adminID }
     });
 }
 
-function findAdminByPhoneNumber(phoneNumber){
-    return Admin.findOne({where : { phoneNumber } })
+function findAdminByPhoneNumber(phoneNumber) {
+    return Admin.findOne({ where: { phoneNumber } })
 }
 
-function getUnmarkedSubmissionsByAdminId(assistantId){
+function getUnmarkedSubmissionsByAdminId(assistantId) {
     console.log(assistantId);
-    return Submission.findAll({where: { assistantId ,score : null}, order: [['subId', 'DESC']]});
+    return Submission.findAll({ where: { assistantId, score: null }, order: [['subId', 'DESC']] });
 }
 
-function getAllUnmarkedSubmissions(){
+function getAllUnmarkedSubmissions() {
     console.log("all sent")
-    return Submission.findAll({where: { score : null}, order: [['subId', 'DESC']]});
+    return Submission.findAll({ where: { score: null }, order: [['subId', 'DESC']] });
 }
 
 function findSubmissionById(subId) {
@@ -160,29 +164,38 @@ function findSubmissionById(subId) {
         }
     });
 }
-function getAllSubmissions(){
+function getAllSubmissions() {
     console.log("getting all submissions")
-    return Submission.findAll({order: [['subId', 'DESC']]});
+    return Submission.findAll({ order: [['subId', 'DESC']] });
 }
 
-function getAllSubmissionsById(assistantId){
-    return Submission.findAll({where: { assistantId } , order: [['subId', 'DESC']]});
+function getAllSubmissionsById(assistantId) {
+    return Submission.findAll({ where: { assistantId }, order: [['subId', 'DESC']] });
 }
 
-function getAdminNameById(adminId){
+function getAllMarkedSubmissions() {
+    return Submission.findAll({ where: { score: !null }, order: [['subId', 'DESC']] });
+}
+
+function getAllMarkedSubmissionsById(id) {
+    return Submission.findAll({ where: { assistantId: id, score: !null }, order: [['subId', 'DESC']] });
+}
+
+
+function getAdminNameById(adminId) {
     return Admin.findOne({
         where: { adminId },
         attributes: ['name']
     });
 }
 
-function getAllAdmins(){
+function getAllAdmins() {
     return Admin.findAll({
-        attributes: ['adminId', ['name','adminName'],['email','adminEmail'], ['phoneNumber','adminPhoneNumber'], 'group']
+        attributes: ['adminId', ['name', 'adminName'], ['email', 'adminEmail'], ['phoneNumber', 'adminPhoneNumber'], 'group']
     });
 }
 
-module.exports={
+module.exports = {
     create,
     findNotVerifiedStudentsByTaGroup,
     Count,
@@ -208,5 +221,7 @@ module.exports={
     getAdminById,
     findAdminByPhoneNumber,
     getAdminNameById,
-    getAllAdmins
+    getAllAdmins,
+    getAllMarkedSubmissions,
+    getAllMarkedSubmissionsById,
 }
