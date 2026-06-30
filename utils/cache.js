@@ -1,7 +1,7 @@
 const cache = new Map();
 
 // store with TTL (optional)
-function setCache(key, value, ttlInSeconds ) {
+function setCache(key, value, ttlInSeconds) {
   cache.set(key, {
     value,
     expiresAt: Date.now() + ttlInSeconds * 1000,
@@ -23,4 +23,8 @@ function deleteCache(key) {
   cache.delete(key);
 }
 
-module.exports = { setCache, getCache, deleteCache };
+function clearCache() {
+  cache.clear();
+}
+
+module.exports = { setCache, getCache, deleteCache, clearCache };

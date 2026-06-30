@@ -4,51 +4,55 @@ const student = require('../data_link/student_data_link');
 const admin = require('../data_link/admin_data_link.js');
 const Admin = require('../models/admin_model.js');
 const session = require('../data_link/session_data_link.js');
-const bcrypt = require('bcrypt');
 const AppError = require('../utils/app.error');
 const httpStatus = require('../utils/http.status');
 const asyncWrapper = require('../middleware/asyncwrapper');
 const { getCache } = require("../utils/cache");
 const { setCache } = require("../utils/cache");
+const { deleteCache } = require("../utils/cache");
+const { clearCache } = require("../utils/cache");
 const jwt = require("jsonwebtoken");
 const sse = require('../utils/sseClients.js');
-const {sanitizeInput} = require('../utils/sanitize.js');
-const topicDl = require('../data_link/topic_data_link.js'); 
+const { sanitizeInput } = require('../utils/sanitize.js');
+const topicDl = require('../data_link/topic_data_link.js');
 
 const startSession = asyncWrapper(async (req, res) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-   // sanitizeInput(req.body);
-//   const { group } = user.Usergroup;
-  const adminId = req.admin.id;
-  const sgroup = req.body?.group && req.body.group.trim() !== ""   ? req.body.group   : req.admin.group;
-  console.log("Admin Group:", sgroup); // Debugging line
+    sanitizeInput(req.body);
+    const adminId = req.admin.id;
+    const sgroup = req.admin.group;
+    console.log("Admin Group:", sgroup); // Debugging line
 
-  const adminN = await admin.findAdminById(adminId);
-  const adminName = adminN.name;
-  const today = new Date();
-  const dayName = days[today.getDay()];
-  const currTopic = await topicDl.getStudentLastTopic(sgroup);
-  const newSession = await admin.createSession(currTopic.topicId,sgroup, currTopic.semester, today, dayName);
-
-   sse.notifyStudents(sgroup, {
+    const adminName = req.admin.name;
+    const today = new Date();
+    const dayName = days[today.getDay()];
+    const currTopic = await topicDl.getStudentLastTopic(sgroup);
+    const newSession = await admin.createSession(currTopic.topicId, sgroup, currTopic.semester, today, dayName);
+    const key = `activeSession:${sgroup}`;
+    console.log("Setting cache with key:", key, "and value:", newSession);
+    setCache(key, newSession, 60 * 60 * 24);
+    sse.notifyStudents(sgroup, {
         event: "session_update",
         message: `Group ${sgroup}, a date for the upcoming session has been dropped by ${adminName}. Please check your dashboard.`,
         post: {
             dateAndTime: today,
             topic: currTopic.title,
         },
-      });
-  return res.status(201).json({
-    status: "success",
-     message: "Session created successfully",
-    data: { id: newSession.sessionId,
-        topicId: newSession.topicId,
-        group: newSession.group,
-        semester: newSession.semester,
-        dateAndTime: newSession.dateAndTime,
-        day: newSession.day
-     }
-  })});
+    });
+    console.log("session created")
+    return res.status(201).json({
+        status: "success",
+        message: "Session created successfully",
+        data: {
+            id: newSession.sessionId,
+            topicId: newSession.topicId,
+            group: newSession.group,
+            semester: newSession.semester,
+            dateAndTime: newSession.dateAndTime,
+            day: newSession.day
+        }
+    })
+});
 
 
 const endSession = asyncWrapper(async (req, res, next) => {
@@ -59,6 +63,7 @@ const endSession = asyncWrapper(async (req, res, next) => {
     }
     currSession.finished = true;
     await currSession.save();
+    deleteCache(`activeSession:${adminGroup}`);
     return res.status(200).json({
         status: "success",
         data: { message: "Session ended successfully" }
@@ -97,7 +102,7 @@ const attendSession = asyncWrapper(async (req, res, next) => {
 });
 
 
-const getAllAttendanceForSession=asyncWrapper(async (req, res, next) => {
+const getAllAttendanceForSession = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const adminGroup = req.admin.group;
     const sessionToGet = req.sessionData;
@@ -113,7 +118,7 @@ const getAllSessions = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group;
     const userType = req.user.type; // 'student' or 'admin'
     const userId = req.user.id;
-    let sessions; 
+    let sessions;
     if (userType === 'admin') {
         sessions = await session.findAllSessionsByAdminGroup(userGroup);
     } else if (userType === 'student') {
@@ -128,22 +133,21 @@ const getAllSessions = asyncWrapper(async (req, res, next) => {
 })
 
 const getActiveSession = asyncWrapper(async (req, res, next) => {
-  const adminGroup = req.admin.group;
-  const activeSession = await session.getActiveSessionByGroup(adminGroup);
+    const adminGroup = req.admin.group;
+    const activeSession = await session.getActiveSessionByGroup(adminGroup);
 
-  if (!activeSession) {
-    return res.status(404).json({
-      status: "error",
-      message: "No active sessions were found",
+    if (!activeSession) {
+        return res.status(404).json({
+            status: "error",
+            message: "No active sessions were found",
+        });
+    }
+
+    return res.status(200).json({
+        status: "success",
+        data: { activeSession },
     });
-  }
-
-  return res.status(200).json({
-    status: "success",
-    data: { activeSession },
-  });
 });
-//dd
 
 const getLastCreatedSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
@@ -162,7 +166,7 @@ const getLastCreatedSession = asyncWrapper(async (req, res, next) => {
 //     sanitizeInput(req.params);
 //     const { sessionId } = req.params;
 //     const adminGroup = req.admin.group;
-    
+
 //     const sessionsData = await session.findSessionById(sessionId);
 //     if (!sessionsData) {
 //         return next(new AppError("Session not found", httpStatus.NOT_FOUND));

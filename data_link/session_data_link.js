@@ -6,9 +6,11 @@ const Admin = require('../models/admin_model');
 const { Op, fn, col } = require("sequelize")
 const Attendance = require('../models/attendance_model');
 const Topic = require('../models/topic_model');
+const {getCache} = require('../utils/cache');
 Session.belongsTo(Topic, { foreignKey: 'topicId' });
 Session.hasMany(Attendance, { foreignKey: 'sessionId' });
 Attendance.belongsTo(Session, { foreignKey: 'sessionId' });
+
 
 
 function findSessionById(sessionId){
@@ -193,18 +195,11 @@ function deleteSessionsBySemester(semester) {
 }
 
 function getActiveSessionByAGroup(group) {
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  return Session.findOne({
-    where: {
-      finished: false,
-      group: group,
-      dateAndTime: {
-        [Op.between]: [oneDayAgo, now],
-      },
-    },
-    order: [['dateAndTime', 'DESC']],
-  });
+  let session = getCache(`activeSession:all`);
+  if(!session){
+      session = getCache(`activeSession:${group}`);
+  }
+  return session;
 }
 
 
