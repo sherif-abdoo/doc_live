@@ -23,7 +23,7 @@ function isAllowedOrigin(origin) {
         if (host.endsWith('.vercel.app') && host.startsWith('doc-frontend-live-')) {
             return true;
         }
-    } catch (_) {}
+    } catch (_) { }
     return false;
 }
 
@@ -52,6 +52,22 @@ const sessionRoutes = require('./routes/session_routes');
 const topicRoutes = require('./routes/topic_routes');
 const leaderBoard = require('./routes/leader_board');
 const materialRoutes = require('./routes/material_routes');
+
+// -------------------- Associations --------------------
+const setupAssociations = require('./models/assosiations');
+const Admin = require('./models/admin_model');
+const Student = require('./models/student_model');
+const Quiz = require('./models/quiz_model');
+const Assignment = require('./models/assignment_model');
+const Submission = require('./models/submission_model');
+const Session = require('./models/session_model');
+const Attendance = require('./models/attendance_model');
+const Registration = require('./models/registration_model');
+const Feed = require('./models/feed_model');
+const Topic = require('./models/topic_model');
+const Material = require('./models/material_model');
+
+setupAssociations({ Admin, Student, Quiz, Assignment, Submission, Session, Attendance, Registration, Feed, Topic, Material });
 
 app.use('/admin', adminRoutes);
 app.use('/dok', dokRoutes);

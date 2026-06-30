@@ -184,14 +184,12 @@ function getAllMarkedSubmissions() {
                 model: Quiz,
                 attributes: ['title'],
                 required: false,
-                foreignKey: 'quizId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             },
             {
                 model: Assignment,
                 attributes: ['title'],
                 required: false,
-                foreignKey: 'assId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             }
         ],
@@ -207,14 +205,12 @@ function getAllMarkedSubmissionsById(id) {
                 model: Quiz,
                 attributes: ['title'],
                 required: false,
-                foreignKey: 'quizId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             },
             {
                 model: Assignment,
                 attributes: ['title'],
                 required: false,
-                foreignKey: 'assId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             }
         ],
