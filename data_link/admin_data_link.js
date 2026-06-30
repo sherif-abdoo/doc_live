@@ -7,7 +7,7 @@ const Registration = require('../models/registration_model');
 const Session = require('../models/session_model');
 const Feed = require('../models/feed_model');
 const Submission = require('../models/submission_model');
-const { get } = require('../routes/admin_routes');
+const { Op } = require('sequelize');
 
 function create(email, name, password, phoneNumber, group) {
     return Admin.create({
@@ -174,11 +174,11 @@ function getAllSubmissionsById(assistantId) {
 }
 
 function getAllMarkedSubmissions() {
-    return Submission.findAll({ where: { score: !null }, order: [['subId', 'DESC']] });
+    return Submission.findAll({ where: { score: { [Op.ne]: null } }, order: [['subId', 'DESC']] });
 }
 
 function getAllMarkedSubmissionsById(id) {
-    return Submission.findAll({ where: { assistantId: id, score: !null }, order: [['subId', 'DESC']] });
+    return Submission.findAll({ where: { assistantId: id, score: { [Op.ne]: null } }, order: [['subId', 'DESC']] });
 }
 
 
