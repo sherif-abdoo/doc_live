@@ -389,29 +389,90 @@ const showAllSubmissions = asyncWrapper(async (req, res) => {
 const showMarkedSubmissions = asyncWrapper(async (req, res) => {
   const assistantId = req.admin.id;
   const adminProfile = await admin.findAdminById(assistantId);
-  console.log(assistantId);
-  const submissions = (assistantId === 1
-    ? await admin.getAllMarkedSubmissions()
-    : await admin.getAllMarkedSubmissionsById(assistantId));
 
-  if (!submissions || submissions.length === 0) {
-    return res.status(200).json({ message: "No marked submissions found" });
+  // Same association pattern as showUnmarkedSubmissions
+  if (!Submission.associations.student) {
+    Submission.belongsTo(Student, { foreignKey: 'studentId', as: 'student' });
   }
-  return res.status(200).json({
-    status: "success",
-    message: `Marked submissions for admin ${adminProfile.name}`,
-    data: {
-      submissions: submissions.map(submission => ({
-        id: submission.subId,
-        studentId: submission.studentId,
-        quizId: submission.quizId,
-        assignmentId: submission.assId,
-        score: submission.score,
-        markedAt: submission.markedAt
-      }))
-    }
+  if (!Submission.associations.assignment) {
+    Submission.belongsTo(Assignment, { foreignKey: 'assId', as: 'assignment' });
+  }
+  if (!Submission.associations.quiz) {
+    Submission.belongsTo(Quiz, { foreignKey: 'quizId', as: 'quiz' });
+  }
+  if (!Assignment.associations.topic) {
+    Assignment.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
+  }
+  if (!Quiz.associations.topic) {
+    Quiz.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
+  }
+
+  const baseWhere = assistantId === 1
+    ? { score: { [Op.ne]: null } }
+    : { assistantId, score: { [Op.ne]: null } };
+
+  const assignmentSubs = await Submission.findAll({
+    where: { ...baseWhere, type: 'assignment' },
+    include: [
+      { model: Student, as: 'student', attributes: ['studentName', 'group'] },
+      {
+        model: Assignment, as: 'assignment', attributes: ['title'],
+        include: [{ model: Topic, as: 'topic', attributes: ['subject'] }]
+      }
+    ],
+    order: [['markedAt', 'DESC']]
   });
 
+  const quizSubs = await Submission.findAll({
+    where: { ...baseWhere, type: 'quiz' },
+    include: [
+      { model: Student, as: 'student', attributes: ['studentName', 'group'] },
+      {
+        model: Quiz, as: 'quiz', attributes: ['title'],
+        include: [{ model: Topic, as: 'topic', attributes: ['subject'] }]
+      }
+    ],
+    order: [['markedAt', 'DESC']]
+  });
+
+  const allSubmissions = [...assignmentSubs, ...quizSubs];
+
+  if (allSubmissions.length === 0) {
+    return res.status(200).json({ status: 'success', message: 'No marked submissions found' });
+  }
+
+  const enriched = allSubmissions.map(sub => {
+    let content = {};
+    let subject = 'N/A';
+
+    if (sub.type === 'assignment' && sub.assignment) {
+      content = { assignmentId: sub.assId, assignmentTitle: sub.assignment.title };
+      subject = sub.assignment.topic?.subject || 'N/A';
+    } else if (sub.type === 'quiz' && sub.quiz) {
+      content = { quizId: sub.quizId, quizTitle: sub.quiz.title };
+      subject = sub.quiz.topic?.subject || 'N/A';
+    }
+
+    return {
+      id: sub.subId,
+      studentId: sub.studentId,
+      studentName: sub.student?.studentName || 'N/A',
+      studentGroup: sub.student?.group || 'N/A',
+      type: sub.type,
+      score: sub.score,
+      markedAt: sub.markedAt,
+      subject,
+      ...content
+    };
+  });
+
+  enriched.sort((a, b) => new Date(b.markedAt) - new Date(a.markedAt));
+
+  return res.status(200).json({
+    status: 'success',
+    message: `Marked submissions for admin ${adminProfile.name}`,
+    data: { submissions: enriched }
+  });
 })
 
 const markSubmission = asyncWrapper(async (req, res) => {
