@@ -12,6 +12,12 @@ const Quiz = require('../models/quiz_model');
 const Topic = require('../models/topic_model');
 const { Op } = require('sequelize');
 
+// Associations needed for includes
+Submission.belongsTo(Quiz, { foreignKey: 'quizId' });
+Submission.belongsTo(Assignment, { foreignKey: 'assId' });
+Quiz.belongsTo(Topic, { foreignKey: 'topicId' });
+Assignment.belongsTo(Topic, { foreignKey: 'topicId' });
+
 function create(email, name, password, phoneNumber, group) {
     return Admin.create({
         email,
@@ -184,12 +190,14 @@ function getAllMarkedSubmissions() {
                 model: Quiz,
                 attributes: ['title'],
                 required: false,
+                foreignKey: 'quizId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             },
             {
                 model: Assignment,
                 attributes: ['title'],
                 required: false,
+                foreignKey: 'assId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             }
         ],
@@ -205,12 +213,14 @@ function getAllMarkedSubmissionsById(id) {
                 model: Quiz,
                 attributes: ['title'],
                 required: false,
+                foreignKey: 'quizId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             },
             {
                 model: Assignment,
                 attributes: ['title'],
                 required: false,
+                foreignKey: 'assId',
                 include: [{ model: Topic, attributes: ['subject'] }]
             }
         ],
