@@ -7,6 +7,9 @@ const Registration = require('../models/registration_model');
 const Session = require('../models/session_model');
 const Feed = require('../models/feed_model');
 const Submission = require('../models/submission_model');
+const Assignment = require('../models/assignment_model');
+const Quiz = require('../models/quiz_model');
+const Topic = require('../models/topic_model');
 const { Op } = require('sequelize');
 
 function create(email, name, password, phoneNumber, group) {
@@ -174,11 +177,45 @@ function getAllSubmissionsById(assistantId) {
 }
 
 function getAllMarkedSubmissions() {
-    return Submission.findAll({ where: { score: { [Op.ne]: null } }, order: [['subId', 'DESC']] });
+    return Submission.findAll({
+        where: { score: { [Op.ne]: null } },
+        include: [
+            {
+                model: Quiz,
+                attributes: ['title'],
+                required: false,
+                include: [{ model: Topic, attributes: ['subject'] }]
+            },
+            {
+                model: Assignment,
+                attributes: ['title'],
+                required: false,
+                include: [{ model: Topic, attributes: ['subject'] }]
+            }
+        ],
+        order: [['subId', 'DESC']]
+    });
 }
 
 function getAllMarkedSubmissionsById(id) {
-    return Submission.findAll({ where: { assistantId: id, score: { [Op.ne]: null } }, order: [['subId', 'DESC']] });
+    return Submission.findAll({
+        where: { assistantId: id, score: { [Op.ne]: null } },
+        include: [
+            {
+                model: Quiz,
+                attributes: ['title'],
+                required: false,
+                include: [{ model: Topic, attributes: ['subject'] }]
+            },
+            {
+                model: Assignment,
+                attributes: ['title'],
+                required: false,
+                include: [{ model: Topic, attributes: ['subject'] }]
+            }
+        ],
+        order: [['subId', 'DESC']]
+    });
 }
 
 
