@@ -478,6 +478,12 @@ const showMarkedSubmissions = asyncWrapper(async (req, res) => {
 const markSubmission = asyncWrapper(async (req, res) => {
   const found = req.found;
   const studentSub = await student.findStudentById(found.studentId);
+  if (found.score) {
+    studentSub.totalScore = parseInt(studentSub.totalScore) - parseInt(found.score);
+    await studentSub.save();
+    console.log("old score removed")
+    console.log(studentSub.totalScore)
+  }
   const { marked, score } = req.body
   found.score = parseInt(score);
   found.marked = marked;
