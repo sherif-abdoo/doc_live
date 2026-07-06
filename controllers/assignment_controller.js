@@ -154,23 +154,18 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
   // Extract assignment IDs from submissions (use assId)
   const submittedAssignmentIds = studentSubmissions.map(s => Number(s.assId));
 
-  // Map all assignments and mark submitted or not
-  const assignments = allAssignments.map(a => {
-    const assignmentPlain = a.get ? a.get({ plain: true }) : a;
-    const isSubmitted = submittedAssignmentIds.includes(Number(assignmentPlain.assignId));
-
-    // Remove the duplicate 'id' if it exists
-    const { id, ...rest } = assignmentPlain;
-
-    return {
-          assignId: assignmentPlain.assignId,
-          title: assignmentPlain.title,
-          subject: assignmentPlain.subject,
-          topicId: assignmentPlain.topicId,
-          endDate: assignmentPlain.endDate,
-          submitted: isSubmitted ? 'true' : 'false'
-      };
-  });
+  // Keep only assignments the student has not submitted
+  const assignments = allAssignments
+    .map(a => (a.get ? a.get({ plain: true }) : a))
+    .filter(assignmentPlain => !submittedAssignmentIds.includes(Number(assignmentPlain.assignId)))
+    .map(assignmentPlain => ({
+      assignId: assignmentPlain.assignId,
+      title: assignmentPlain.title,
+      subject: assignmentPlain.subject,
+      topicId: assignmentPlain.topicId,
+      endDate: assignmentPlain.endDate,
+      submitted: 'false'
+    }));
 
   return res.status(200).json({
     status: "success",
