@@ -107,6 +107,8 @@ const showStudentInGroup = asyncWrapper(async (req, res) => {
 
 const removeStudent = asyncWrapper(async (req, res) => {
   const student = req.student; // must be set earlier by studentFound
+  await registration.registrationDestroy(student.studentEmail);
+  await rejection.Destroy(student.studentEmail);
   await student.destroy();
   return res.status(200).json({
     status: "success",
