@@ -9,62 +9,63 @@ const quiz = require('../data_link/quiz_data_link.js');
 const assignment = require('../data_link/assignment_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 
-const subExist = asyncWrapper(async (req,res ,next) => {
+const subExist = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const subId = req.params.id;
     const found = await admin.findSubmissionById(subId)
     if (!found) {
         return next(new AppError("Submission demanded is not found", httpStatus.NOT_FOUND));
     }
-    console.log("Submission found : ",found);
-    req.found=found;
+    console.log("Submission found : ", found);
+    req.found = found;
     next();
 })
 
-const canSeeSubmission = asyncWrapper(async (req,res, next) => {
+const canSeeSubmission = asyncWrapper(async (req, res, next) => {
     const sub = req.found;
+    const subAdmin = await admin.findAdminById(sub.assistantId)
     const adminId = req.admin.id;
-    if(!adminId){
+    if (!adminId) {
         return next(new AppError("Admin not found", httpStatus.NOT_FOUND))
     }
-    console.log("AdminId: ",adminId);
-    if(sub.assistantId !== adminId &&  adminId !== 1){
+    console.log("AdminId: ", adminId);
+    if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group === req.admin.group) {
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
     next();
 })
 
-const marked = asyncWrapper(async (req,res, next) => {
+const marked = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    if(found.marked){
+    if (found.marked) {
         return next(new AppError("Submission already marked", httpStatus.FORBIDDEN));
     }
     next();
 })
 
-const subMarked = asyncWrapper(async (req,res, next) => {
+const subMarked = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    if(!found.marked){
+    if (!found.marked) {
         return next(new AppError("Submission not marked yet", httpStatus.BAD_REQUEST));
     }
     next();
 })
 
 
-const checkData = asyncWrapper(async (req,res, next) => {
+const checkData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {marked,score } = req.body
+    const { marked, score } = req.body
     const nscore = Number(score); // Convert score to a number
-    if(!marked || !score){
+    if (!marked || !score) {
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
     }
     const found = req.found;
     let total;
-    if(found.type==="quiz"){
+    if (found.type === "quiz") {
         const qfound = await quiz.getQuizById(found.quizId);
         total = qfound.mark
     }
-    else{
+    else {
         const afound = await assignment.getAssignmentById(found.assId);
         total = afound.mark
     }
@@ -86,7 +87,7 @@ const checkData = asyncWrapper(async (req,res, next) => {
 
 
 
-module.exports ={
+module.exports = {
     subExist,
     canSeeSubmission,
     marked,

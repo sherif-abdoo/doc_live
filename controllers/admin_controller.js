@@ -243,7 +243,11 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
   // Build base where clause
   const baseWhere = adminId === 1
     ? unmarkedCondition
-    : { ...unmarkedCondition, assistantId: adminId };
+    : unmarkedCondition;
+
+  const studentGroupFilter = adminId === 1
+    ? {}
+    : { group: req.admin.group };
 
   // 🔍 Fetch unmarked assignment submissions
   const assignmentSubs = await Submission.findAll({
@@ -252,7 +256,9 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
       {
         model: Student,
         as: 'student',
-        attributes: ['studentName', 'group']
+        attributes: ['studentName', 'group'],
+        where: studentGroupFilter,
+        required: true
       },
       {
         model: Assignment,
@@ -278,7 +284,9 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
       {
         model: Student,
         as: 'student',
-        attributes: ['studentName', 'group']
+        attributes: ['studentName', 'group'],
+        where: studentGroupFilter,
+        required: true
       },
       {
         model: Quiz,
@@ -411,12 +419,16 @@ const showMarkedSubmissions = asyncWrapper(async (req, res) => {
 
   const baseWhere = assistantId === 1
     ? { score: { [Op.ne]: null } }
-    : { assistantId, score: { [Op.ne]: null } };
+    : { score: { [Op.ne]: null } };
+
+  const studentFilter = assistantId === 1
+    ? {}
+    : { group: req.admin.group };
 
   const assignmentSubs = await Submission.findAll({
     where: { ...baseWhere, type: 'assignment' },
     include: [
-      { model: Student, as: 'student', attributes: ['studentName', 'group'] },
+      { model: Student, as: 'student', attributes: ['studentName', 'group'], where: studentFilter, required: true },
       {
         model: Assignment, as: 'assignment', attributes: ['title'],
         include: [{ model: Topic, as: 'topic', attributes: ['subject'] }]
@@ -428,7 +440,7 @@ const showMarkedSubmissions = asyncWrapper(async (req, res) => {
   const quizSubs = await Submission.findAll({
     where: { ...baseWhere, type: 'quiz' },
     include: [
-      { model: Student, as: 'student', attributes: ['studentName', 'group'] },
+      { model: Student, as: 'student', attributes: ['studentName', 'group'], where: studentFilter, required: true },
       {
         model: Quiz, as: 'quiz', attributes: ['title'],
         include: [{ model: Topic, as: 'topic', attributes: ['subject'] }]
