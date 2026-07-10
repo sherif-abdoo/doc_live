@@ -29,7 +29,8 @@ const canSeeSubmission = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Admin not found", httpStatus.NOT_FOUND))
     }
     console.log("AdminId: ", adminId);
-    if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group === req.admin.group) {
+    console.log("group: ", subAdmin.group, "   admin: ", req.admin.group)
+    if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group !== req.admin.group) {
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
     next();
