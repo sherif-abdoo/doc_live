@@ -10,23 +10,23 @@ const Admin = require('../models/admin_model.js');
 const Student = require('../models/student_model.js');
 const submission = require('../data_link/submission_data_link.js');
 const Submission = require('../models/submission_model.js');
-const submissions = require('../data_link/submission_data_link.js');  
+const submissions = require('../data_link/submission_data_link.js');
 const Topic = require('../models/topic_model.js');
 const topic = require('../data_link/topic_data_link.js');
-const {sanitizeInput}= require('../utils/sanitize.js');
+const { sanitizeInput } = require('../utils/sanitize.js');
 
 const createAssignment = asyncWrapper(async (req, res) => {
-    sanitizeInput(req.body);
-    const {mark, document,  endDate, semester, topicId, title, description}= req.body;
-    const nmark = Number(mark);
-    const startDate = new Date(); // current date
-    const publisher = req.admin.id;
-    const createdAssignment = await assignment.createAssignment
-    (nmark, document, startDate, endDate, semester, publisher,topicId, title, description) //7aga
-    return res.status(201).json({
-        status: "success" ,
-        data: { message: "assignment created successfully", id: createdAssignment.assignId },
-    });
+  sanitizeInput(req.body);
+  const { mark, document, endDate, semester, topicId, title, description } = req.body;
+  const nmark = Number(mark);
+  const startDate = new Date(); // current date
+  const publisher = req.admin.id;
+  const createdAssignment = await assignment.createAssignment
+    (nmark, document, startDate, endDate, semester, publisher, topicId, title, description) //7aga
+  return res.status(201).json({
+    status: "success",
+    data: { message: "assignment created successfully", id: createdAssignment.assignId },
+  });
 });
 
 const getAllAssignments = asyncWrapper(async (req, res) => {
@@ -45,9 +45,9 @@ const getAllAssignments = asyncWrapper(async (req, res) => {
     attributes: ['assId']
   });
   const submittedIds = new Set(submissions.map(s => s.assId));
-  let submittedCount =0;
-  let submittedLateCount =0;
-  let missedCount =0;
+  let submittedCount = 0;
+  let submittedLateCount = 0;
+  let missedCount = 0;
   const assignmentMap = new Map(
     assignments.map(a => {
       const plain = a.get({ plain: true });
@@ -64,7 +64,7 @@ const getAllAssignments = asyncWrapper(async (req, res) => {
       } else {
         // case 3: not submitted yet, still open
         state = "unsubmitted";
-        let submittedLateCount =0;
+        let submittedLateCount = 0;
 
       }
 
@@ -80,7 +80,8 @@ const getAllAssignments = asyncWrapper(async (req, res) => {
 
   return res.status(200).json({
     status: "success",
-    results: {count : assignments.length,
+    results: {
+      count: assignments.length,
       submitted: submittedCount,
       submittedLate: submittedLateCount,
       missed: missedCount
@@ -91,50 +92,57 @@ const getAllAssignments = asyncWrapper(async (req, res) => {
 
 
 const getAssignmentById = asyncWrapper(async (req, res) => {
-    const assignData = req.assignData;
-    const topicf = await topic.getTopicById(assignData.topicId);
-    const submitteed = await submission.getSubmissionForAssignment(req.user.id,assignData.assignId)
-     const assignWithSubmission = {
-        ...assignData.toJSON(), // or quizData.get({ plain: true }) or quizData.dataValues
-        submitted: !!submitteed
-    };
-    return res.status(200).json({
-        status: "success",
-        data: { assignData:assignWithSubmission,
-          subject: topicf.subject,
-         }
-    });
+  const assignData = req.assignData;
+  const topicf = await topic.getTopicById(assignData.topicId);
+  const submitteed = await submission.getSubmissionForAssignment(req.user.id, assignData.assignId)
+  const assignWithSubmission = {
+    ...assignData.toJSON(), // or quizData.get({ plain: true }) or quizData.dataValues
+    submitted: !!submitteed
+  };
+  return res.status(200).json({
+    status: "success",
+    data: {
+      assignData: assignWithSubmission,
+      subject: topicf.subject,
+    }
+  });
 })
 
 const submitAssignment = asyncWrapper(async (req, res) => {
-    sanitizeInput(req.body);
-    sanitizeInput(req.params);
-    const { answers } = req.body;
-    const studentId = req.student.id;
-    const found = await student.findStudentById(studentId);
-    const {assignId} = req.params;
-    if(req.submitted==="false"){
-      console.log("Creating new submission");
-      const newSub= await assignment.createSubmission(assignId, studentId,found.assistantId ,answers, found.semester);
-      return res.status(200).json({
-        status: "success",
-        data: { message: "Assignment submitted successfully" ,
-            id: newSub.id
-        }
+  sanitizeInput(req.body);
+  sanitizeInput(req.params);
+  const { answers } = req.body;
+  const studentId = req.student.id;
+  const found = await student.findStudentById(studentId);
+  const { assignId } = req.params;
+  if (req.submitted === "false") {
+    console.log("Creating new submission");
+    const newSub = await assignment.createSubmission(assignId, studentId, found.assistantId, answers, found.semester);
+    return res.status(200).json({
+      status: "success",
+      data: {
+        message: "Assignment submitted successfully",
+        id: newSub.id
+      }
     });
-    }
-    else{
-      console.log("Updating existing submission");
-
-      const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId,studentId);
-      submission.answers = answers;
-      submission.subDate = new Date();
-      await submission.save();
-      return res.status(200).json({
-        status: "success",
-        data: { message: "Assignment resubmitted successfully" ,
-            id: submission.id
-        }
+  }
+  else {
+    console.log("Updating existing submission");
+    const studentSub = await student.findStudentById(req.student.id);
+    const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId, studentId);
+    studentSub.totalScore -= submission.score;
+    submission.score = null;
+    submission.marked = null;
+    studentSub.save();
+    submission.answers = answers;
+    submission.subDate = new Date();
+    await submission.save();
+    return res.status(200).json({
+      status: "success",
+      data: {
+        message: "Assignment resubmitted successfully",
+        id: submission.id
+      }
     });
   }
 })
@@ -175,27 +183,27 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
 
 
 const deleteAllAssignmentSubmissionsFunc = asyncWrapper(async (req, res, next) => {
-    await submissions.deleteAllAssignmentSubmissions();
-    return res.status(200).json({
-        status: "success",
-        data: { message: "All submissions for the assignment deleted successfully" }
-    });
+  await submissions.deleteAllAssignmentSubmissions();
+  return res.status(200).json({
+    status: "success",
+    data: { message: "All submissions for the assignment deleted successfully" }
+  });
 });
 
 
 const deleteAssignment = asyncWrapper(async (req, res, next) => {
-    const { assignId } = req.params;
-    await assignment.findAssignmentAndDelete(assignId);
-    return res.status(200).json({
-        status: "success",
-        data: { message: "Assignment deleted successfully" }
-    });
+  const { assignId } = req.params;
+  await assignment.findAssignmentAndDelete(assignId);
+  return res.status(200).json({
+    status: "success",
+    data: { message: "Assignment deleted successfully" }
+  });
 });
 
 const modifyAssignment = asyncWrapper(async (req, res, next) => {
   sanitizeInput(req.body);
   const { assignId } = req.params;
-  const {title, description} = req.body;
+  const { title, description } = req.body;
   const modidfied = await Assignment.update(
     { title, description },
     { where: { assignId } }
@@ -210,13 +218,13 @@ const modifyAssignment = asyncWrapper(async (req, res, next) => {
 });
 
 
-module.exports={
-    createAssignment,
-    getAllAssignments,
-    getAssignmentById,
-    submitAssignment,
-    getUnsubmittedAssignments,
-    deleteAssignment,
-    modifyAssignment,
-    deleteAllAssignmentSubmissionsFunc
+module.exports = {
+  createAssignment,
+  getAllAssignments,
+  getAssignmentById,
+  submitAssignment,
+  getUnsubmittedAssignments,
+  deleteAssignment,
+  modifyAssignment,
+  deleteAllAssignmentSubmissionsFunc
 }

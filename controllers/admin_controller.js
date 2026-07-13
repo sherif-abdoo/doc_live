@@ -494,15 +494,18 @@ const markSubmission = asyncWrapper(async (req, res) => {
   const studentSub = await student.findStudentById(found.studentId);
   if (found.score) {
     studentSub.totalScore = parseInt(studentSub.totalScore) - parseInt(found.score);
+
     await studentSub.save();
     console.log("old score removed")
     console.log(studentSub.totalScore)
   }
   const { marked, score } = req.body
-  found.score = parseInt(score);
-  found.marked = marked;
+  found.score = score ? parseInt(score) : parseInt(found.score);
+  found.marked = marked ? marked : found.marked;
   found.markedAt = new Date();
-  studentSub.totalScore = parseInt(score) + parseInt(studentSub.totalScore);
+  studentSub.totalScore = parseInt(found.score) + parseInt(studentSub.totalScore);
+  console.log("new score added")
+  console.log(studentSub.totalScore)
   await studentSub.save();
   await found.save();
   return res.status(200).json({

@@ -56,6 +56,11 @@ const subMarked = asyncWrapper(async (req, res, next) => {
 const checkData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { marked, score } = req.body
+    if (req.found.score) {
+        console.log("not first mark");
+        next();
+        return;
+    }
     const nscore = Number(score); // Convert score to a number
     if (!marked || !score) {
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
