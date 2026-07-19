@@ -8,15 +8,17 @@ const Submission = require('../models/submission_model.js');
 const quiz = require('../data_link/quiz_data_link.js');
 const assignment = require('../data_link/assignment_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger.js');
 
 const subExist = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const subId = req.params.id;
     const found = await admin.findSubmissionById(subId)
     if (!found) {
+        logger.debug("Submission not found : ", subId);
         return next(new AppError("Submission demanded is not found", httpStatus.NOT_FOUND));
     }
-    console.log("Submission found : ", found);
+    logger.debug("Submission found : ", found);
     req.found = found;
     next();
 })
@@ -26,11 +28,13 @@ const canSeeSubmission = asyncWrapper(async (req, res, next) => {
     const subAdmin = await admin.findAdminById(sub.assistantId)
     const adminId = req.admin.id;
     if (!adminId) {
+        logger.debug("admin not found : ", adminId)
         return next(new AppError("Admin not found", httpStatus.NOT_FOUND))
     }
-    console.log("AdminId: ", adminId);
-    console.log("group: ", subAdmin.group, "   admin: ", req.admin.group)
+    logger.debug("AdminId: ", adminId);
+    logger.debug("group: ", subAdmin.group, "   admin: ", req.admin.group)
     if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group !== req.admin.group) {
+        logger.debug("No access to the submission: ", sub.id, " by admin: ", adminId)
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
     next();
@@ -57,7 +61,7 @@ const checkData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { marked, score } = req.body
     if (req.found.score) {
-        console.log("not first mark");
+        logger.debug("not first mark");
         next();
         return;
     }

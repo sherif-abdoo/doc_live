@@ -20,6 +20,7 @@ const Quiz = require('../models/quiz_model.js');
 const Topic = require('../models/topic_model.js');
 const { Op } = require('sequelize');
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger')
 
 
 // Assignment.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
@@ -496,16 +497,16 @@ const markSubmission = asyncWrapper(async (req, res) => {
     studentSub.totalScore = parseInt(studentSub.totalScore) - parseInt(found.score);
 
     await studentSub.save();
-    console.log("old score removed")
-    console.log(studentSub.totalScore)
+    logger.info("old score removed")
+    logger.info(studentSub.totalScore)
   }
   const { marked, score } = req.body
   found.score = score ? parseInt(score) : parseInt(found.score);
   found.marked = marked ? marked : found.marked;
   found.markedAt = new Date();
   studentSub.totalScore = parseInt(found.score) + parseInt(studentSub.totalScore);
-  console.log("new score added")
-  console.log(studentSub.totalScore)
+  logger.info("new score added")
+  logger.info(studentSub.totalScore)
   await studentSub.save();
   await found.save();
   return res.status(200).json({

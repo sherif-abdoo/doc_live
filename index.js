@@ -3,6 +3,7 @@ const sequelize = require('./config/database');
 const express = require("express");
 const httpStatusCode = require('./utils/http.status');
 const cors = require('cors');
+const logger = require('./utils/logger');
 
 const app = express();
 
@@ -91,14 +92,14 @@ app.use((error, req, res, next) => {
 (async () => {
     try {
         await sequelize.authenticate();
-        console.log('✅ Connection established.');
+        logger.db('✅ Connection established.');
 
         await sequelize.sync({ alter: true });
-        console.log('✅ Database synced');
+        logger.db('✅ Database synced');
 
         const PORT = process.env.PORT || 3001;
-        app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+        app.listen(PORT, () => logger.info(`🚀 Server running on port ${PORT}`));
     } catch (error) {
-        console.error('❌ Database or server failed to start:', error);
+        logger.error('❌ Database or server failed to start:', error);
     }
 })();

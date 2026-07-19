@@ -1,10 +1,10 @@
 require('dotenv').config();
 const { Sequelize } = require('sequelize');
-
+const logger = require('../utils/logger')
 const isProd = process.env.NODE_ENV === 'production';
 const hasConnectionString = !!process.env.DATABASE_URL;
 
-console.log("🔍 DB ENV CONFIG:", {
+logger.db("🔍 DB ENV CONFIG:", {
     mode: hasConnectionString ? 'DATABASE_URL' : 'separate fields',
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,

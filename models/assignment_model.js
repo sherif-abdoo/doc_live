@@ -1,16 +1,19 @@
 const sequelize = require('../config/database');
 const { Sequelize, DataTypes } = require('sequelize');
 const Assignment = sequelize.define('Assignment', {
-  assignId: { type: DataTypes.INTEGER, 
-    primaryKey: true, 
-    autoIncrement: true  },
+  assignId: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   publisher: DataTypes.INTEGER,
   title: DataTypes.STRING,
   description: DataTypes.TEXT,
   mark: DataTypes.INTEGER,
   document: {
-    type:DataTypes.STRING,
-    allowNull: true,},
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
   startDate: DataTypes.DATE,
   endDate: DataTypes.DATE,
   semester: DataTypes.STRING,
