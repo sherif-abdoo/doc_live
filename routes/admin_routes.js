@@ -58,7 +58,7 @@ router.route('/showAllSubmissions')
 
 router.route('/markSubmission/:id')
     .patch(auth.adminProtect, subMiddleWare.subExist, subMiddleWare.canSeeSubmission,
-        subMiddleWare.checkData, adminControllers.markSubmission);
+        /*subMiddleWare.checkData,*/ adminControllers.markSubmission);
 
 router.route('/createReport/:topicId')
     .get(auth.adminProtect, report.createReport);
