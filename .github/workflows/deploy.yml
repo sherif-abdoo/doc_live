@@ -24,6 +24,8 @@ jobs:
               --exclude='.git' \
               --exclude='.github' \
               --exclude='node_modules' \
+              --exclude='Dockerfile' \
+              --exclude='.dockerignore' \
               ./ $DOCKER_DIR/
             cd /home/sherif/docker
             sudo docker compose build backend
