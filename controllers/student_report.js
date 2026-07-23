@@ -110,10 +110,15 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
 
       let status = "Missing";
       let subId = "N/A";
+      let hasMarkedPdf = false;
       if (submission) {
-        if (submission.marked) {
+        // A submission is "marked" once a score has been given, regardless of
+        // whether an assistant attached a marked PDF.
+        const isMarked = submission.score !== null && submission.score !== undefined;
+        if (isMarked) {
           status = "Marked";
           subId = submission.subId;
+          hasMarkedPdf = !!submission.marked;
         } else {
           status = "Pending Review";
         }
@@ -129,6 +134,7 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
         date: assignmentItem.startDate,
         status,
         submissionId: subId,
+        hasMarkedPdf,
         score: submission ? normalize(submission.score) : "N/A",
         feedback: submission ? normalize(submission.feedback) : "N/A"
       });
@@ -142,10 +148,14 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       let percentage = "N/A";
       let grade = "N/A";
       let status = "Missing";
+      let hasMarkedPdf = false;
 
       if (submission) {
-        if (submission.marked) {
+        // "Marked" once a score is present, even without a marked PDF attached.
+        const isMarked = submission.score !== null && submission.score !== undefined;
+        if (isMarked) {
           status = "Marked";
+          hasMarkedPdf = !!submission.marked;
         } else {
           status = "Pending Review";
         }
@@ -176,6 +186,7 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
         maxPoints: quizItem.mark,
         status,
         submissionId: submission ? submission.subId : "N/A",
+        hasMarkedPdf,
         score: submission ? normalize(submission.score) : "N/A",
         percentage,
         grade,

@@ -234,12 +234,11 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
     Quiz.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
   }
 
-  // 🎯 "Unmarked" = marked is NULL or empty string
+  // 🎯 "Unmarked" = no score yet (mirrors showMarkedSubmissions, which
+  // treats score IS NOT NULL as marked). A submission is marked once it
+  // has a score, regardless of whether a marked PDF was uploaded.
   const unmarkedCondition = {
-    [Op.or]: [
-      { marked: null },
-      { marked: '' }
-    ]
+    score: null
   };
 
   // Build base where clause
@@ -504,7 +503,12 @@ const markSubmission = asyncWrapper(async (req, res) => {
     logger.info(studentSub.totalScore)
   }
   const { marked, score } = req.body
-  found.score = score ? parseInt(score) : parseInt(found.score);
+  // Use a null/empty check (not truthiness) so a valid score of 0 is stored,
+  // otherwise a 0 mark would leave the submission in the unmarked list.
+  found.score =
+    score !== undefined && score !== null && score !== ''
+      ? parseInt(score)
+      : found.score;
   found.marked = marked ? marked : found.marked;
   found.markedAt = new Date();
   studentSub.totalScore = parseInt(found.score) + parseInt(studentSub.totalScore);
