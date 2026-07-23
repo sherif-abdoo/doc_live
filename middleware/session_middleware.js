@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const httpStatus = require('../utils/http.status');
 const AppError = require('../utils/app.error');
 const asyncWrapper = require('./asyncwrapper');
-const {where} = require("sequelize");
+const { where } = require("sequelize");
 const session = require('../data_link/session_data_link.js');
 const Session = require('../models/session_model.js');
 const student = require('../data_link/student_data_link.js');
@@ -11,6 +11,8 @@ const admin = require('../data_link/admin_data_link.js');
 const { getCache } = require("../utils/cache");
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger')
+
 
 const sessionFound = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
@@ -21,7 +23,7 @@ const sessionFound = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Session not found", httpStatus.NOT_FOUND));
     }
 
-    console.log("Session found:", sessFound);
+    logger.debug("Session found:", sessFound);
 
     req.sessionData = sessFound;
 
@@ -60,10 +62,10 @@ const canAccessSession = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const userGroup = req.admin.group;
     const sessionData = req.sessionData;
-    if (sessionData.group !== 'all' && sessionData.group !== userGroup&& userGroup !== 'all') {
+    if (sessionData.group !== 'all' && sessionData.group !== userGroup && userGroup !== 'all') {
         return next(new AppError("You do not have permission to access this session", httpStatus.FORBIDDEN));
     }
-    console.log("User has permission to access the session");
+    logger.debug("User has permission to access the session");
     next();
 });
 
@@ -79,7 +81,7 @@ const canAccessActiveSession = asyncWrapper(async (req, res, next) => {
         return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
     }
 
-    console.log("Active session found:", activeSession);
+    logger.debug("Active session found:", activeSession);
     req.activeSession = activeSession;
     next();
 });
@@ -87,30 +89,31 @@ const canAccessActiveSession = asyncWrapper(async (req, res, next) => {
 const activeSessionExists = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group; // consistent naming
     let activeSession = await session.getActiveSessionByAGroup(userGroup);
-    
+
     if (!activeSession) {
         activeSession = await session.getActiveSessionByAGroup('all');
         if (!activeSession) {
-        return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
-    }}
+            return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
+        }
+    }
 
-    console.log("Active session found:", activeSession);
+    logger.debug("Active session found:", activeSession);
     req.activeSession = activeSession;
     next();
 });
 
 const upcomingSession = asyncWrapper(async (req, res, next) => {
-  const { group } = req.student;
+    const { group } = req.student;
 
-  const upcomingSession = await session.findAllUpcomingSessionByGroup(group);
+    const upcomingSession = await session.findAllUpcomingSessionByGroup(group);
 
-  if (!upcomingSession) {
-    return next(
-      new AppError("No upcoming session found for your group", httpStatus.NOT_FOUND)
-    );
-  }
-  req.upcomingSession = upcomingSession;
-  next();
+    if (!upcomingSession) {
+        return next(
+            new AppError("No upcoming session found for your group", httpStatus.NOT_FOUND)
+        );
+    }
+    req.upcomingSession = upcomingSession;
+    next();
 });
 
 /*

@@ -15,6 +15,7 @@ const topic = require('../data_link/topic_data_link.js');
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
 const { link } = require('fs');
+const logger = require('../utils/logger')
 
 const checkTopicExists = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
@@ -28,8 +29,8 @@ const checkTopicExists = asyncWrapper(async (req, res, next) => {
 
 const checkInputData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const { title, description, document, link, topicId } = req.body; 
-    if (!title || !topicId ) {
+    const { title, description, document, link, topicId } = req.body;
+    if (!title || !topicId) {
         return next(new AppError("Missing required fields: title, description, document, topicId", httpStatus.BAD_REQUEST));
     }
     next();
@@ -43,18 +44,18 @@ const findMaterialById = asyncWrapper(async (req, res, next) => {
         return next(new AppError(`Material with id ${id} not found`, httpStatus.NOT_FOUND));
     }
     req.found = found;
-    console.log("Found material:", found);
+    logger.debug("Found material:", found);
     next();
-}); 
+});
 
 const canSeeMaterial = asyncWrapper(async (req, res, next) => {
     const materialf = req.found;
     const userGroup = req.user.group;
     const publisher = await admin.getAdminById(materialf.publisher);
-    if (publisher.group !== 'all' && publisher.group !== userGroup&& userGroup !== 'all') {
+    if (publisher.group !== 'all' && publisher.group !== userGroup && userGroup !== 'all') {
         return next(new AppError("You do not have permission to view this material", httpStatus.FORBIDDEN));
     }
-    console.log("User can see material");
+    logger.debug("User can see material");
     next();
 });
 
@@ -65,7 +66,7 @@ const AdminViewMaterial = asyncWrapper(async (req, res, next) => {
     if (userGroup !== 'all' && publisher.group !== userGroup) {
         return next(new AppError("You do not have permission to modify this material", httpStatus.FORBIDDEN));
     }
-    console.log("User can see material");
+    logger.debug("User can see material");
     next();
 });
 

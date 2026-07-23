@@ -14,19 +14,20 @@ const sse = require('../utils/sseClients.js');
 const { getCache } = require("../utils/cache");
 const { setCache } = require("../utils/cache");
 const { Op } = require("sequelize");
-const {sanitizeInput} = require('../utils/sanitize.js');
+const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger');
 
 const createQuiz = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
-    const {mark,date,semester,durationInMin, topicId, title} = req.body;
-    const publisher = req.admin.id; 
+    const { mark, date, semester, durationInMin, topicId, title } = req.body;
+    const publisher = req.admin.id;
     const nmark = parseFloat(mark);
     const ndurationInMin = parseInt(durationInMin);
-    console.log("publisher id:", publisher)
-    console.log("Creating quiz with data:", {nmark,date,semester,ndurationInMin});
-    const newQuiz = await quiz.createQuiz(nmark,publisher,date,semester,ndurationInMin, topicId, title);  
+    logger.debug("publisher id:", publisher)
+    logger.info("Creating quiz with data:", { nmark, date, semester, ndurationInMin });
+    const newQuiz = await quiz.createQuiz(nmark, publisher, date, semester, ndurationInMin, topicId, title);
     return res.status(201).json({
-        status: "success" ,
+        status: "success",
         data: { message: "Quiz created successfully", id: newQuiz.quizId }
     });
 });
@@ -34,29 +35,31 @@ const createQuiz = asyncWrapper(async (req, res) => {
 
 const getAllQuizzes = asyncWrapper(async (req, res) => {
     const group = req.user.group;
-    console.log("Fetching quizzes for group:", group);
+    logger.debug("Fetching quizzes for group:", group);
 
     // Get all quizzes based on group
-    const quizzes =  await quiz.getAllQuizzes();
-     const quizzesWithSubmission = [];
+    const quizzes = await quiz.getAllQuizzes();
+    const quizzesWithSubmission = [];
     if (req.user.type === "student" || req.user.type === "assistant") {
-       
-        
+
+
         for (const q of quizzes) {
-            console.log(`Checking submission for student ${req.user.id} and quiz ${q.quizId}`);
+            logger.debug(`Checking submission for student ${req.user.id} and quiz ${q.quizId}`);
             const submitted = await submission.getSubmissionForQuiz(req.user.id, q.quizId);
-            
+
             // Convert to plain object and add submitted property
             quizzesWithSubmission.push({
                 ...q.toJSON(), // or q.get({ plain: true }) or q.dataValues
                 submitted: !!submitted
             });
         }
-        
+
     }
 
     const data = req.user.type === "student" ? quizzesWithSubmission : quizzes;
 
+    logger.info("Quizzes fetched successfully for group:", group);
+    logger.info("Sending response with quizzes count:", quizzes.length);
     return res.status(200).json({
         status: "success",
         results: quizzes.length,
@@ -67,8 +70,8 @@ const getAllQuizzes = asyncWrapper(async (req, res) => {
 
 const getQuizById = asyncWrapper(async (req, res, next) => {
     const quizData = req.quizData;
-    const submitteed = await submission.getSubmissionForQuiz(req.user.id,quizData.quizId);
-     const quizWithSubmission = {
+    const submitteed = await submission.getSubmissionForQuiz(req.user.id, quizData.quizId);
+    const quizWithSubmission = {
         ...quizData.toJSON(), // or quizData.get({ plain: true }) or quizData.dataValues
         submitted: !!submitteed
     };
@@ -98,14 +101,14 @@ const startQuiz = asyncWrapper(async (req, res) => {
     sse.notifyStudents(adminGroup, {
         event: "quiz_start",
         message: `Quiz to group ${adminGroup} is gonna start now. Please check your dashboard.`,
-        
-      });
+
+    });
 
     return res.status(200).json({
         status: "success",
-        data: { 
-            message: `Quiz started for group ${adminGroup} and cached`, 
-            quiz: quizData 
+        data: {
+            message: `Quiz started for group ${adminGroup} and cached`,
+            quiz: quizData
         }
     });
 });
@@ -127,11 +130,12 @@ const submitActiveQuiz = asyncWrapper(async (req, res, next) => {
     const studentId = req.user.id;
     const found = await student.findStudentById(studentId);
     const activeQuiz = req.quizData;
-    const newSub= await quiz.createSubmission(activeQuiz.quizId, studentId,found.assistantId ,answers, found.semester);
+    const newSub = await quiz.createSubmission(activeQuiz.quizId, studentId, found.assistantId, answers, found.semester);
     return res.status(200).json({
         status: "success",
-        data: { message: "Quiz submitted successfully" ,
-        id: newSub.id  
+        data: {
+            message: "Quiz submitted successfully",
+            id: newSub.id
         }
     });
 });
@@ -143,33 +147,35 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
     const { answers } = req.body;
     const studentId = req.user.id;
     const found = await student.findStudentById(studentId);
-    const {quizId} = req.params;
-    if(req.submitted==="false"){
-        console.log("Creating new submission");
-        const newSub= await quiz.createSubmission(quizId, studentId,found.assistantId ,answers, found.semester);
+    const { quizId } = req.params;
+    if (req.submitted === "false") {
+        logger.info("Creating new submission");
+        const newSub = await quiz.createSubmission(quizId, studentId, found.assistantId, answers, found.semester);
 
         return res.status(200).json({
-        status: "success",
-        data: { message: "Quiz submitted successfully" ,
-        id: newSub.id  
+            status: "success",
+            data: {
+                message: "Quiz submitted successfully",
+                id: newSub.id
             }
         });
     }
-    else{
-        console.log("Updating existing submission");
-        const submission = await quiz.findSubmissionByQuizAndStudent(quizId,studentId);
+    else {
+        logger.info("Updating existing submission");
+        const submission = await quiz.findSubmissionByQuizAndStudent(quizId, studentId);
         submission.answers = answers;
         submission.subDate = new Date();
         await submission.save();
         return res.status(200).json({
-        status: "success",
-        data: { message: "Quiz resubmitted successfully" ,
-        id: submission.id  
+            status: "success",
+            data: {
+                message: "Quiz resubmitted successfully",
+                id: submission.id
             }
         });
     }
 
-    
+
 });
 
 const modifyQuiz = asyncWrapper(async (req, res, next) => {
@@ -210,9 +216,9 @@ const deleteAllQuizSubmissionsFunc = asyncWrapper(async (req, res, next) => {
 
 
 module.exports = {
-    createQuiz  ,
+    createQuiz,
     getAllQuizzes,
-    getQuizById, 
+    getQuizById,
     startQuiz,
     getActiveQuiz,
     submitActiveQuiz,

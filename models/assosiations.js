@@ -1,7 +1,9 @@
 module.exports = db => {
     const { Student, Admin, Quiz, Assignment, Submission, Session, Attendance, Registration, Feed, Topic, Material } = db;
+    const logger = require('../utils/logger')
 
-    console.log("Setting up associations...");
+
+    logger.db("Setting up associations...");
     // ---------------- Student----------------
 
     // Student - Admin
@@ -79,5 +81,5 @@ module.exports = db => {
     Attendance.belongsTo(Session, { foreignKey: 'sessionId' });
 
 
-    console.log("✅ All associations have been set up successfully!");
+    logger.db("✅ All associations have been set up successfully!");
 };

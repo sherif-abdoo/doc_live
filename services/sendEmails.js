@@ -1,5 +1,7 @@
 require('dotenv').config();
 const { MailerSend, EmailParams, Sender, Recipient } = require("mailersend");
+const logger = require('../utils/logger')
+
 
 const mailerSend = new MailerSend({
   apiKey: process.env.MAILERSEND_API_KEY,
@@ -37,9 +39,9 @@ async function sendOTPEmail(email, otp) {
 
   try {
     const response = await mailerSend.email.send(emailParams);
-    console.log("✅ Email sent successfully:", response.statusCode);
+    logger.info("✅ Email sent successfully:", response.statusCode);
   } catch (error) {
-    console.error("❌ Failed to send email:", error.body || error);
+    logger.error("❌ Failed to send email:", error.body || error);
   }
 }
 

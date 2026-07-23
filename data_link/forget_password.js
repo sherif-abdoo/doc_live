@@ -4,6 +4,7 @@ const Admin = require('../models/admin_model');
 const OTP = require('../models/otp');
 const bcrypt = require('bcrypt');
 const { Op } = require("sequelize");
+const logger = require('../utils/logger');
 
 async function findUserByEmail(Email) {
 
@@ -11,7 +12,7 @@ async function findUserByEmail(Email) {
   if (admin) {
     return admin;
   }
-  
+
   const student = await Student.findOne({ where: { studentEmail: Email } });
   if (student) {
     return student;
@@ -21,26 +22,26 @@ async function findUserByEmail(Email) {
   return null;
 }
 
-async function HasOTP(email){ 
+async function HasOTP(email) {
   const record = await OTP.findOne({ where: { email } });
-  console.log(record); 
-  if(!record) return false;
+  logger.debug(record);
+  if (!record) return false;
   return (record.expiresAt > new Date() ? true : false);
 }
 
-function getOTP(otp){ 
-  return OTP.findOne({ 
+function getOTP(otp) {
+  return OTP.findOne({
     where: { otp }
   });
 }
 
-function findOTP(email,otp){ 
-  return OTP.findOne({ 
-    where: { email, otp } 
+function findOTP(email, otp) {
+  return OTP.findOne({
+    where: { email, otp }
   });
 }
 
-function findOTPByEmail(email){
+function findOTPByEmail(email) {
   return OTP.findOne({
     where: {
       email,
@@ -51,49 +52,49 @@ function findOTPByEmail(email){
   });
 }
 
-async function expired(OTP){
+async function expired(OTP) {
   const otp = await getOTP(OTP);
-  console.log(otp);
+  logger.db(otp);
   if (new Date() > otp.expiresAt) {
     return true;
   }
   else return false;
 }
 
-async function verifyOTP(email,otp){
+async function verifyOTP(email, otp) {
   await OTP.update(
-  { verified: true },
-  { where: { email, otp } }
+    { verified: true },
+    { where: { email, otp } }
   );
 }
 
-async function updateAdminPassByEmail(email,newPassword){
+async function updateAdminPassByEmail(email, newPassword) {
   const hashedPassword = await bcrypt.hash(String(newPassword), 10);
   Admin.update(
-      { password: hashedPassword },
-      { where: { email } }
+    { password: hashedPassword },
+    { where: { email } }
   );
 }
 
-async function updateStudentPassByEmail(studentEmail,newPassword){
+async function updateStudentPassByEmail(studentEmail, newPassword) {
   const hashedPassword = await bcrypt.hash(String(newPassword), 10);
   Student.update(
-      { password: hashedPassword },
-      { where: { studentEmail } }
+    { password: hashedPassword },
+    { where: { studentEmail } }
   );
 }
 
 
-async function addOTP(email,otp){
+async function addOTP(email, otp) {
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await OTP.create({
-      email,
-      otp,
-      expiresAt
-    });
+  await OTP.create({
+    email,
+    otp,
+    expiresAt
+  });
 }
 
-function deleteOTP(email){
+function deleteOTP(email) {
   return OTP.destroy({
     where: {
       email

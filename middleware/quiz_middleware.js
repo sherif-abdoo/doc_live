@@ -10,43 +10,44 @@ const Admin = require('../models/admin_model.js');
 const Student = require('../models/student_model.js');
 const { getCache } = require("../utils/cache");
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger')
 
 const checkFields = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {mark,date,semester,durationInMin,} = req.body;
+    const { mark, date, semester, durationInMin, } = req.body;
     const nmark = parseFloat(mark);
     const ndurationInMin = parseInt(durationInMin);
-    if (nmark == null  || date == null || semester == null || ndurationInMin == null) {
+    if (nmark == null || date == null || semester == null || ndurationInMin == null) {
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 1 done, all fields present")
+    logger.debug("chack 1 done, all fields present")
     if (typeof nmark !== 'number' || nmark < 0) {
         return next(new AppError("Mark must be a non-negative number", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 2 done, mark valid")
-     // quizPdf must be a valid URL ending with .pdf
+    logger.debug("chack 2 done, mark valid")
+    // quizPdf must be a valid URL ending with .pdf
     // const pdfRegex = /^https?:\/\/.+\.pdf$/i;
     // if (typeof quizPdf !== 'string' || !pdfRegex.test(quizPdf.trim())) {
     //     return next(new AppError("Quiz PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
     // }
-    // console.log("chack 3 done, pdf valid")
+    // logger.debug("chack 3 done, pdf valid")
 
     // allow any date format that JS Date can parse
     const parsedDate = new Date(date);
     if (parsedDate.toString() === "Invalid Date") {
         return next(new AppError("Invalid date format", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 4 done, date valid")
+    logger.debug("chack 4 done, date valid")
 
     if (typeof semester !== 'string' || semester.trim() === '') {
         return next(new AppError("Semester must be a non-empty string", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 5 done, semester valid")
+    logger.debug("chack 5 done, semester valid")
 
     if (typeof ndurationInMin !== 'number' || ndurationInMin <= 0) {
         return next(new AppError("Duration must be a positive number", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 6 done, duration valid")
+    logger.debug("chack 6 done, duration valid")
     next();
 });
 
@@ -56,7 +57,7 @@ const getGroup = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Group not found", httpStatus.NOT_FOUND));
     }
     req.group = group;
-    console.log("group sent :", group)
+    logger.debug("group sent :", group)
     next();
 });
 
@@ -69,40 +70,44 @@ const quizExists = asyncWrapper(async (req, res, next) => {
     if (!quizData) {
         return next(new AppError("Quiz not found", httpStatus.NOT_FOUND));
     }
-    console.log("Quiz found:", quizData);
+    logger.debug("Quiz found:", quizData);
     req.quizData = quizData;
     next();
 });
 
 const canAccessQuiz = asyncWrapper(async (req, res, next) => {
-    const userGroup = req.admin.group ;
+    const userGroup = req.admin.group;
     const quizData = req.quizData;
     const publisher = await admin.findAdminById(quizData.publisher);
     if (!publisher) {
+        logger.debug("publisher not found")
         return next(new AppError("Publisher not found", httpStatus.NOT_FOUND));
     }
 
-    if (publisher.group !== 'all' && publisher.group !== userGroup&& userGroup !== 'all') {
+    if (publisher.group !== 'all' && publisher.group !== userGroup && userGroup !== 'all') {
+        logger.debug("User does not have permission to access the quiz");
         return next(new AppError("You do not have permission to access this quiz", httpStatus.FORBIDDEN));
     }
-    console.log("User has permission to access the quiz");
+    logger.debug("User has permission to access the quiz");
     next();
 });
 
 
 
 const canSeeQuiz = asyncWrapper(async (req, res, next) => {
-    const userGroup = req.user.group ;
+    const userGroup = req.user.group;
     const quizData = req.quizData;
     const publisher = await admin.findAdminById(quizData.publisher);
     if (!publisher) {
+        logger.debug('publisher of the quiz is not found')
         return next(new AppError("Publisher not found", httpStatus.NOT_FOUND));
     }
 
-    if (publisher.group !== 'all' && publisher.group !== userGroup&& userGroup !== 'all') {
+    if (publisher.group !== 'all' && publisher.group !== userGroup && userGroup !== 'all') {
+        logger.debug("User does not have permission to view the quiz");
         return next(new AppError("You do not have permission to view this quiz", httpStatus.FORBIDDEN));
     }
-    console.log("User has permission to view the quiz");
+    logger.debug("User has permission to view the quiz");
     next();
 });
 
@@ -120,19 +125,19 @@ const activeQuizExists = asyncWrapper(async (req, res, next) => {
     if (!activeQuiz) {
         return next(new AppError("No active quiz found", httpStatus.NOT_FOUND));
     }
-    console.log("active quiz exists")
+    logger.debug("active quiz exists")
     req.quizData = activeQuiz;
     next();
 });
 
 const submittedBefore = asyncWrapper(async (req, res, next) => {
     const subQuiz = req.quizData;
-    const studentId= req.user.id;
-    const submission = await quiz.findSubmissionByQuizAndStudent(subQuiz.quizId,studentId);
+    const studentId = req.user.id;
+    const submission = await quiz.findSubmissionByQuizAndStudent(subQuiz.quizId, studentId);
     req.submitted = "false";
-    if(submission){
+    if (submission) {
         req.submitted = "true";
-        console.log("resubmitting quiz");
+        logger.debug("resubmitting quiz");
     }
     next();
 });
@@ -145,10 +150,11 @@ const canAccessActiveQuiz = asyncWrapper(async (req, res, next) => {
     // publisher group is already baked into how the quiz was cached
     // so here you just check group compatibility
     if (userGroup !== 'all' && publisher.group !== userGroup && publisher.group !== 'all') {
+        logger.debug("user cannot acess active quiz")
         return next(new AppError("You do not have permission to access this active quiz", httpStatus.FORBIDDEN));
     }
 
-    console.log(`✅ User from group ${userGroup} can access quiz for group ${publisher.group}`);
+    logger.debug(`✅ User from group ${userGroup} can access quiz for group ${publisher.group}`);
     next();
 });
 
@@ -164,7 +170,7 @@ const verifySubmissionPDF = asyncWrapper(async (req, res, next) => {
         return next(new AppError("answers PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
     }
 
-    console.log("valid Pdf");
+    logger.debug("valid Pdf");
     next();
 });
 */
@@ -174,11 +180,10 @@ const verifySubmissionTiming = asyncWrapper(async (req, res, next) => {
 
     let deadline = new Date(activeQuiz.date);
     deadline += activeQuiz.durationInMin * 60000
-    console.log (deadline)
     if (new Date() > deadline) {
         return next(new AppError("Quiz submission time has expired", httpStatus.BAD_REQUEST));
     }
-    console.log("Quiz submission is within the allowed time frame");
+    logger.debug("Quiz submission is within the allowed time frame");
     next();
 });
 
@@ -187,11 +192,11 @@ const verifySubmissionTiming = asyncWrapper(async (req, res, next) => {
 module.exports = {
     checkFields,
     getGroup,
-    quizExists ,
-    canSeeQuiz ,
-    canAccessQuiz ,
-    activeQuizExists ,
-    canAccessActiveQuiz ,
+    quizExists,
+    canSeeQuiz,
+    canAccessQuiz,
+    activeQuizExists,
+    canAccessActiveQuiz,
     //verifySubmissionPDF,
     verifySubmissionTiming,
     submittedBefore

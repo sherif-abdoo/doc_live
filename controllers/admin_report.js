@@ -9,7 +9,8 @@ const topicDl = require('../data_link/topic_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const Session = require('../models/session_model');
 const Attendance = require('../models/attendance_model');
-const sessionDl= require('../data_link/session_data_link.js');
+const sessionDl = require('../data_link/session_data_link.js');
+const logger = require('../utils/logger');
 
 const getGradingSystem = () => {
   return {
@@ -24,137 +25,137 @@ const getGradingSystem = () => {
 };
 
 const createReport = async (req, res) => {
- // try {
-    sanitizeInput(req.params);
-    const { topicId } = req.params;
+  // try {
+  sanitizeInput(req.params);
+  const { topicId } = req.params;
 
-    // 🔒 Authorization
-    if (!req.admin || req.admin.type !== 'admin') {
-      return res.status(403).json({ error: 'Access denied. Assistants only.' });
-    }
-
-    const assistantId = req.admin.id;
-
-    // 🔍 Validate topic exists and belongs to this assistant
-    const topic = await topicDl.getTopicById(topicId);
-    if (!topic) {
-      return res.status(404).json({
-        error: 'Topic not found or not owned by this assistant.'
-      });
-    }
-    if (topic.group !== req.admin.group && req.admin.group !== 'all' && topic.group !== 'all') {
-      return res.status(403).json({ error: 'You are not authorized to access this topic.' });
-    }
-    const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
-    let students = [];  
-    // 👥 Get all students assigned to this assistant
-    if(req.admin.group === 'all'){
-      students = await Student.findAll({});
-    }
-    else {
-      students = await student.getStudentsByAssistant(assistantId);
-    }
-    // Fetch assignments WITH title
-    const assignments = await Assignment.findAll({
-      where: { topicId: topic.topicId },
-      attributes: ['assignId', 'title', 'mark'] // ✅ ADDED 'title'
-    });
-
-    const quizzes = await Quiz.findOne({
-      where: { topicId: topic.topicId },
-      attributes: ['quizId', 'mark','title']
-    });
-
-    // ✅ Use 0 instead of null
-    const quizTotalScore = quizzes?.mark ?? 0;
-    const numberOfAssignments = assignments.length;
-
-    const studentIds = students.map(s => s.studentId);
-    // 📤 Build submission query conditions
-    let submissionConditions = [];
-    const assignmentIds = assignments.map(a => a.assignId);
-    if (assignmentIds.length > 0) {
-      submissionConditions.push({
-        type: 'assignment',
-        assId: { [Op.in]: assignmentIds },
-        studentId: { [Op.in]: studentIds }
-      });
-    }
-    if (quizzes) {
-      submissionConditions.push({
-        type: 'quiz',
-        quizId: quizzes.quizId,
-        studentId: { [Op.in]: studentIds }
-      });
-    }
-
-    let submissions = [];
-     if (submissionConditions.length > 0) {
-      submissions = await Submission.findAll({
-        where: { [Op.or]: submissionConditions },
-        attributes: ['studentId', 'type', 'assId', 'quizId', 'score']
-      });
-    }
-
-
-    // 🗂️ Create a lookup map for O(1) access
-    const submissionsMap = {};  submissions.forEach(sub => {
-      if (sub.type === 'assignment') {
-        submissionsMap[`A-${sub.studentId}-${sub.assId}`] = sub.score;
-      } else if (sub.type === 'quiz') {
-        submissionsMap[`Q-${sub.studentId}`] = sub.score; // only one quiz
-      }
-    });
-
-    const grading = getGradingSystem();
-
-  const studentReports = await Promise.all(students.map(async (st) => {
-  // 🔹 Quiz data
-  const quizScore = submissionsMap[`Q-${st.studentId}`];
-  let percentage = 'missing';
-  let grade = 'missing';
-  if (quizScore != null && quizTotalScore > 0) {
-    percentage = parseFloat(((quizScore / quizTotalScore) * 100).toFixed(2));
-    grade = grading.calculateGrade(percentage);
+  // 🔒 Authorization
+  if (!req.admin || req.admin.type !== 'admin') {
+    return res.status(403).json({ error: 'Access denied. Assistants only.' });
   }
 
-  const attendedSessions = await sessionDl.countAttendedSessionsByTopic(st.studentId, topic.topicId);
+  const assistantId = req.admin.id;
 
-  const assignmentList = assignments.map(ass => ({
-    id: ass.assignId,
-    title: ass.title,
-    status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null 
-      ? "done" 
-      : "missing"
+  // 🔍 Validate topic exists and belongs to this assistant
+  const topic = await topicDl.getTopicById(topicId);
+  if (!topic) {
+    return res.status(404).json({
+      error: 'Topic not found or not owned by this assistant.'
+    });
+  }
+  if (topic.group !== req.admin.group && req.admin.group !== 'all' && topic.group !== 'all') {
+    return res.status(403).json({ error: 'You are not authorized to access this topic.' });
+  }
+  const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
+  let students = [];
+  // 👥 Get all students assigned to this assistant
+  if (req.admin.group === 'all') {
+    students = await Student.findAll({});
+  }
+  else {
+    students = await student.getStudentsByAssistant(assistantId);
+  }
+  // Fetch assignments WITH title
+  const assignments = await Assignment.findAll({
+    where: { topicId: topic.topicId },
+    attributes: ['assignId', 'title', 'mark'] // ✅ ADDED 'title'
+  });
+
+  const quizzes = await Quiz.findOne({
+    where: { topicId: topic.topicId },
+    attributes: ['quizId', 'mark', 'title']
+  });
+
+  // ✅ Use 0 instead of null
+  const quizTotalScore = quizzes?.mark ?? 0;
+  const numberOfAssignments = assignments.length;
+
+  const studentIds = students.map(s => s.studentId);
+  // 📤 Build submission query conditions
+  let submissionConditions = [];
+  const assignmentIds = assignments.map(a => a.assignId);
+  if (assignmentIds.length > 0) {
+    submissionConditions.push({
+      type: 'assignment',
+      assId: { [Op.in]: assignmentIds },
+      studentId: { [Op.in]: studentIds }
+    });
+  }
+  if (quizzes) {
+    submissionConditions.push({
+      type: 'quiz',
+      quizId: quizzes.quizId,
+      studentId: { [Op.in]: studentIds }
+    });
+  }
+
+  let submissions = [];
+  if (submissionConditions.length > 0) {
+    submissions = await Submission.findAll({
+      where: { [Op.or]: submissionConditions },
+      attributes: ['studentId', 'type', 'assId', 'quizId', 'score']
+    });
+  }
+
+
+  // 🗂️ Create a lookup map for O(1) access
+  const submissionsMap = {}; submissions.forEach(sub => {
+    if (sub.type === 'assignment') {
+      submissionsMap[`A-${sub.studentId}-${sub.assId}`] = sub.score;
+    } else if (sub.type === 'quiz') {
+      submissionsMap[`Q-${sub.studentId}`] = sub.score; // only one quiz
+    }
+  });
+
+  const grading = getGradingSystem();
+
+  const studentReports = await Promise.all(students.map(async (st) => {
+    // 🔹 Quiz data
+    const quizScore = submissionsMap[`Q-${st.studentId}`];
+    let percentage = 'missing';
+    let grade = 'missing';
+    if (quizScore != null && quizTotalScore > 0) {
+      percentage = parseFloat(((quizScore / quizTotalScore) * 100).toFixed(2));
+      grade = grading.calculateGrade(percentage);
+    }
+
+    const attendedSessions = await sessionDl.countAttendedSessionsByTopic(st.studentId, topic.topicId);
+
+    const assignmentList = assignments.map(ass => ({
+      id: ass.assignId,
+      title: ass.title,
+      status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null
+        ? "done"
+        : "missing"
+    }));
+
+    return {
+      id: st.studentId,
+      email: st.studentEmail,
+      studentName: st.studentName,
+      banned: st.banned,
+      quizScore: quizScore ?? 'missing',
+      percentage,
+      grade,
+      attended: attendedSessions,
+      assignments: assignmentList
+    };
   }));
 
-  return {
-    id: st.studentId,
-    email: st.studentEmail,
-    studentName: st.studentName,
-    banned: st.banned,
-    quizScore: quizScore ?? 'missing',
-    percentage,
-    grade,
-    attended: attendedSessions,
-    assignments: assignmentList
-  };
-}));
 
-    
-    // 📤 Final response
-      return res.json({
-      topicId: topic.topicId,
-      topicName: topic.topicName,
-      quizTitle: quizzes?.title ?? 'No quiz',
-      quizTotalScore ,
-      numberOfAssignments,
-      totalSession:topicSessions,
-      students: studentReports
-    });
+  // 📤 Final response
+  return res.json({
+    topicId: topic.topicId,
+    topicName: topic.topicName,
+    quizTitle: quizzes?.title ?? 'No quiz',
+    quizTotalScore,
+    numberOfAssignments,
+    totalSession: topicSessions,
+    students: studentReports
+  });
 
   // } catch (error) {
-  //   console.error('Report generation error:', error);
+  //   logger.error('Report generation error:', error);
   //   return res.status(500).json({ error: 'Failed to generate report.' });
   // }
 };

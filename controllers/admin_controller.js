@@ -144,18 +144,19 @@ const banStudent = asyncWrapper(async (req, res) => {
 const rejectStudent = asyncWrapper(async (req, res) => {
   const student = req.student; // must be set earlier by studentFound
   const adminId = req.admin.id;
-  console.log(adminId) // assuming adminId is available in req.admin
+  logger.debug(adminId) // assuming adminId is available in req.admin
   await rejection.createRejection(student.studentEmail, adminId, student.semester);
   const rej = await registration.findRegistration(student.studentEmail);
   rej.rejectionCount += 1;
   await rej.save();
   const adminCount = await admin.Count(student.group);
-  console.log("adminCount : ", adminCount);
+  logger.debug("adminCount : ", adminCount);
   if (rej.rejectionCount >= adminCount) {
     await registration.registrationDestroy(student.studentEmail);
     await student.destroy();
     await rejection.Destroy(student.studentEmail);
   }
+  logger.info(`student ${student} rejected by admin ${admin}`)
   return res.status(200).json({
     status: "success",
     message: `Student ${student.studentName} rejected successfully`,
@@ -178,7 +179,7 @@ const showMyProfile = asyncWrapper(async (req, res) => {
   if (adminId == 1) {
     admins = await admin.getAllAdmins();
   }
-
+  logger.info(`admin profile for ${adminId} fetched`)
   return res.status(200).json({
     status: "success",
     data: {
@@ -276,7 +277,7 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
     ],
     order: [['subDate', 'DESC']]
   });
-  console.log("Assignment Subs: ", assignmentSubs.length);
+  logger.debug("Assignment Subs: ", assignmentSubs.length);
 
   // 🔍 Fetch unmarked quiz submissions
   const quizSubs = await Submission.findAll({
@@ -304,10 +305,10 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
     ],
     order: [['subDate', 'DESC']]
   });
-  console.log("Quiz Subs: ", quizSubs.length);
+  logger.debug("Quiz Subs: ", quizSubs.length);
 
   const allSubmissions = [...assignmentSubs, ...quizSubs];
-  console.log("All Subs: ", allSubmissions.length);
+  logger.debug("All Subs: ", allSubmissions.length);
 
   if (allSubmissions.length === 0) {
     return res.status(200).json({
@@ -350,7 +351,7 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
 
   // Sort combined list by submission date (newest first)
   enrichedSubmissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-
+  logger.info(`unmarked subs fetched for ${adminProfile.name}`);
   return res.status(200).json({
     status: 'success',
     message: `Unmarked submissions for admin ${adminProfile.name}`,
@@ -364,6 +365,7 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
 
 const findSubmissionById = asyncWrapper(async (req, res) => {
   const found = req.found;
+  logger.info(`found submission ${found.subId} by id`)
   return res.status(200).json({
     status: "success",
     data: { found }
@@ -373,7 +375,7 @@ const findSubmissionById = asyncWrapper(async (req, res) => {
 const showAllSubmissions = asyncWrapper(async (req, res) => {
   const assistantId = req.admin.id;
   const adminProfile = await admin.findAdminById(assistantId);
-  console.log(assistantId);
+  logger.debug(assistantId);
   const submissions = (assistantId === 1
     ? await admin.getAllSubmissions()
     : await admin.getAllSubmissionsById(assistantId));
@@ -381,6 +383,7 @@ const showAllSubmissions = asyncWrapper(async (req, res) => {
   if (!submissions || submissions.length === 0) {
     return res.status(200).json({ message: "No unmarked submissions found" });
   }
+  logger.info(`subs fetched for ${adminProfile.name}`)
   return res.status(200).json({
     status: "success",
     message: `Unmarked submissions for admin ${adminProfile.name}`,

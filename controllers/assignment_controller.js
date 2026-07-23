@@ -14,6 +14,7 @@ const submissions = require('../data_link/submission_data_link.js');
 const Topic = require('../models/topic_model.js');
 const topic = require('../data_link/topic_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger');
 
 const createAssignment = asyncWrapper(async (req, res) => {
   sanitizeInput(req.body);
@@ -116,7 +117,7 @@ const submitAssignment = asyncWrapper(async (req, res) => {
   const found = await student.findStudentById(studentId);
   const { assignId } = req.params;
   if (req.submitted === "false") {
-    console.log("Creating new submission");
+    logger.info("Creating new submission");
     const newSub = await assignment.createSubmission(assignId, studentId, found.assistantId, answers, found.semester);
     return res.status(200).json({
       status: "success",
@@ -127,7 +128,7 @@ const submitAssignment = asyncWrapper(async (req, res) => {
     });
   }
   else {
-    console.log("Updating existing submission");
+    logger.info("Updating existing submission");
     const studentSub = await student.findStudentById(req.student.id);
     const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId, studentId);
     studentSub.totalScore -= submission.score;

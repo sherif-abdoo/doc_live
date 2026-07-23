@@ -3,7 +3,8 @@ const User = require('../data_link/forget_password');
 const asyncwrapper = require('../middleware/asyncwrapper');
 const sengGrid = require('../services/sendEmails');
 const crypto = require('crypto');
-const {sanitizeInput} = require('../utils/sanitize');
+const { sanitizeInput } = require('../utils/sanitize');
+const logger = require('../utils/logger');
 
 const forgetPassword = asyncwrapper(async (req, res, next) => {
     sanitizeInput(req.body);
@@ -13,12 +14,12 @@ const forgetPassword = asyncwrapper(async (req, res, next) => {
 
     // Check the email if it's in the data base or not 
     const user = await User.findUserByEmail(email);
-    if (user){
+    if (user) {
 
         // Check if this email has requested an otp or not
         const hasOTP = await User.HasOTP(email);
-        console.log(hasOTP);
-        if(hasOTP===true){
+        logger.debug(hasOTP);
+        if (hasOTP === true) {
             res.status(400).json({
                 status: "You have already requested an OTP",
             })
@@ -28,14 +29,14 @@ const forgetPassword = asyncwrapper(async (req, res, next) => {
             const otp = generateOTP();// generate otp
             try {
                 const result = await sengGrid.sendOTPEmail(email, otp); // WAIT for the email
-            } 
+            }
             catch (error) {
-                console.error("Email sending failed:", error);
+                logger.error("Email sending failed:", error);
                 return res.status(500).json({
                     status: "Email service unavailable. Try again later.",
                 });
             }// send email with the otp
-            User.addOTP(email,otp);
+            User.addOTP(email, otp);
             res.json({
                 status: "success",
                 data: {
@@ -45,11 +46,11 @@ const forgetPassword = asyncwrapper(async (req, res, next) => {
         }
     }
     res.status(404).json({
-        status:"email not found",
+        status: "email not found",
     })
 });
 
-function generateOTP(){
+function generateOTP() {
     return crypto.randomInt(100000, 999999); // 6 digits
 }
 

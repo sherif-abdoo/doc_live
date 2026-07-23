@@ -6,90 +6,91 @@ const Rejection = require('../models/rejection_model.js');
 const Registration = require('../models/registration_model.js');
 const Attendance = require('../models/attendance_model.js');
 const Submission = require('../models/submission_model.js');
-const {verify} = require("jsonwebtoken");
+const { verify } = require("jsonwebtoken");
+const logger = require('../utils/logger');
 
-function findStudentByEmail(studentEmail){
-    return Student.findOne({where : { studentEmail } })
+function findStudentByEmail(studentEmail) {
+  return Student.findOne({ where: { studentEmail } })
 }
 
-function registerStudent(studentEmail, group, semester,phoneNumber){
-    return Registration.create({
-        studentEmail,
-        group, semester, phoneNumber});
+function registerStudent(studentEmail, group, semester, phoneNumber) {
+  return Registration.create({
+    studentEmail,
+    group, semester, phoneNumber
+  });
 }
 
-function createStudent(studentName,studentEmail,password,parentEmail,birthDate,
-                       studentPhoneNumber,parentPhoneNumber,group,semester)
-{
-    return Student.create({
-        studentName,
-        studentEmail,
-        password,
-        parentEmail,
-        birthDate,
-        studentPhoneNumber,
-        parentPhoneNumber,
-        group,
-        semester
-    });
+function createStudent(studentName, studentEmail, password, parentEmail, birthDate,
+  studentPhoneNumber, parentPhoneNumber, group, semester) {
+  return Student.create({
+    studentName,
+    studentEmail,
+    password,
+    parentEmail,
+    birthDate,
+    studentPhoneNumber,
+    parentPhoneNumber,
+    group,
+    semester
+  });
 };
 
-function findStudentById(studentId){
-    return Student.findOne({where : { studentId } })
+function findStudentById(studentId) {
+  return Student.findOne({ where: { studentId } })
 }
 
-function findStudentByPhoneNumber(studentPhoneNumber){
-    return Student.findOne({where : { studentPhoneNumber} })
+function findStudentByPhoneNumber(studentPhoneNumber) {
+  return Student.findOne({ where: { studentPhoneNumber } })
 }
 
 function createAttendance(studentId, sessionId, semester) {
-    return Attendance.create({
-        studentId,
-        recordedAt: new Date(),
-        semester,
-        sessionId
-    });
+  return Attendance.create({
+    studentId,
+    recordedAt: new Date(),
+    semester,
+    sessionId
+  });
 }
 
 function findAttendanceByStudentAndSession(studentId, sessionId) {
-    return Attendance.findOne({ 
-        where: { 
-            studentId: studentId.toString(), 
-            sessionId: sessionId.toString() 
-        } 
-    });
+  return Attendance.findOne({
+    where: {
+      studentId: studentId.toString(),
+      sessionId: sessionId.toString()
+    }
+  });
 }
 
-function getGroupById(studentId){
-    return Student.findOne({where : { studentId } }).then(student=>{
-        if(!student) return null;
-        return student.group;
-    })
+function getGroupById(studentId) {
+  return Student.findOne({ where: { studentId } }).then(student => {
+    if (!student) return null;
+    return student.group;
+  })
 }
 
-function showSubmissions(studentId){
-    return Submission.findAll({where:{studentId}, order: [['subId', 'DESC']]});
+function showSubmissions(studentId) {
+  return Submission.findAll({ where: { studentId }, order: [['subId', 'DESC']] });
 }
 
-function getTotalNumberOfStudents(){
-    return Student.count({where: { verified: true }});
+function getTotalNumberOfStudents() {
+  return Student.count({ where: { verified: true } });
 }
 
-function showLeaderBoard(limit,offset){
-    return Student.findAndCountAll({
+function showLeaderBoard(limit, offset) {
+  return Student.findAndCountAll({
     attributes: ["studentName", "totalScore", "studentId"],
     where: { verified: true },
     order: [["totalScore", "DESC"]],
     limit,
     offset
-    });
+  });
 }
 
-function getStudentScore(id){
-    return Student.findOne({
-        attributes: ["totalScore"],
-        where: { studentId: id }   
-    });
+function getStudentScore(id) {
+  return Student.findOne({
+    attributes: ["totalScore"],
+    where: { studentId: id }
+  });
 }
 
 
@@ -113,7 +114,7 @@ async function getStudentRank(id) {
 
     return result ? result.rank : null;
   } catch (err) {
-    console.error("Error in getStudentRank:", err.message);
+    logger.debug("Error in getStudentRank:", err.message);
     throw err;
   }
 }
@@ -127,15 +128,15 @@ async function findAllStudentsForProfile(assistantId) {
 
   return await Student.findAll({
     where: whereClause,
-    attributes: ['studentId', 'studentName', 'studentEmail', 'studentPhoneNumber' ,'totalScore', 'group' ,'banned']
+    attributes: ['studentId', 'studentName', 'studentEmail', 'studentPhoneNumber', 'totalScore', 'group', 'banned']
   });
 }
 
 async function getStudentsByAssistant(assistantId) {
   return await Student.findAll({
-      where: { assistantId: String(assistantId) },
-      attributes: ['studentId', 'studentName', 'totalScore']
-    });
+    where: { assistantId: String(assistantId) },
+    attributes: ['studentId', 'studentName', 'totalScore']
+  });
 }
 
 function deleteRegistrationBySemester(semester) {
@@ -168,23 +169,23 @@ function deleteStudentBySemester(semester) {
 }
 
 
-module.exports={
-    findStudentByEmail,
-    findAllStudentsForProfile,
-    createStudent,
-    registerStudent,
-    findStudentById,
-    createAttendance,
-    findAttendanceByStudentAndSession,
-    getGroupById,
-    showSubmissions,
-    getTotalNumberOfStudents,
-    showLeaderBoard,
-    getStudentScore,
-    getStudentRank,
-    getStudentsByAssistant,
-    deleteRegistrationBySemester,
-    deleteRejectionsBySemester,
-    deleteStudentBySemester,
-    findStudentByPhoneNumber
+module.exports = {
+  findStudentByEmail,
+  findAllStudentsForProfile,
+  createStudent,
+  registerStudent,
+  findStudentById,
+  createAttendance,
+  findAttendanceByStudentAndSession,
+  getGroupById,
+  showSubmissions,
+  getTotalNumberOfStudents,
+  showLeaderBoard,
+  getStudentScore,
+  getStudentRank,
+  getStudentsByAssistant,
+  deleteRegistrationBySemester,
+  deleteRejectionsBySemester,
+  deleteStudentBySemester,
+  findStudentByPhoneNumber
 }

@@ -19,6 +19,7 @@ const Quiz = require('../models/quiz_model.js');
 const Topic = require('../models/topic_model.js');
 const { Op } = require('sequelize');
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger');
 
 const studentRegister = asyncWrapper(async (req, res) => {
   sanitizeInput(req.body);
@@ -223,7 +224,7 @@ const showASubmission = asyncWrapper(async (req, res) => {
 const getMarkForSubmission = asyncWrapper(async (req, res) => {
   const found = req.found;
   const taName = await admin.getAdminNameById(found.assistantId);
-  console.log(taName.name);
+  logger.info(taName.name);
   return res.status(200).json({
     status: "success",
     data: {

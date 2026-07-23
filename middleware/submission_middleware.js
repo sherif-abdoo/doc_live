@@ -79,18 +79,18 @@ const checkData = asyncWrapper(async (req, res, next) => {
         const afound = await assignment.getAssignmentById(found.assId);
         total = afound.mark
     }
-    console.log("All fields checked");
+    logger.debug("All fields checked");
 
     const pdfRegex = /^https?:\/\/.+\.pdf$/i;
     if (typeof marked !== 'string' || !pdfRegex.test(marked.trim())) {
         return next(new AppError("marked PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 2 done, pdf valid")
+    logger.debug("chack 2 done, pdf valid")
 
     if (typeof nscore !== 'number' || nscore <= 0 || nscore > total) {
         return next(new AppError("Score must be a positive number and less than the total score", httpStatus.BAD_REQUEST));
     }
-    console.log("chack 3 done, duration valid")
+    logger.debug("chack 3 done, duration valid")
 
     next();
 })

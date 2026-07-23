@@ -12,12 +12,14 @@ const Topic = require('../models/topic_model.js');
 const topic = require('../data_link/topic_data_link.js');
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger')
+
 
 const checkSemester = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { semester } = req.body;
-    const toLow= semester.toLowerCase();
-    if(toLow!== "jun" && toLow !== "nov"){
+    const toLow = semester.toLowerCase();
+    if (toLow !== "jun" && toLow !== "nov") {
         return next(new AppError("Semester must be either 'Jun' or 'Nov'", httpStatus.BAD_REQUEST));
     }
     next();
@@ -26,8 +28,8 @@ const checkSemester = asyncWrapper(async (req, res, next) => {
 const checkSubject = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { subject } = req.body;
-    const toLow= subject.toLowerCase();
-    if(toLow!== "biology" && toLow !== "physics" && toLow !== "chemistry"){
+    const toLow = subject.toLowerCase();
+    if (toLow !== "biology" && toLow !== "physics" && toLow !== "chemistry") {
         return next(new AppError("Subject must be either 'Biology', 'Physics' or 'Chemistry'", httpStatus.BAD_REQUEST));
     }
     next();
@@ -36,32 +38,33 @@ const checkSubject = asyncWrapper(async (req, res, next) => {
 const findTopicById = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { topicId } = req.params;
-    const found = await topic.getTopicById(topicId );
+    const found = await topic.getTopicById(topicId);
     if (!found) {
         return next(new AppError("Topic not found", httpStatus.NOT_FOUND));
     }
     req.found = found;
-    console.log("Topic found:", found);
+    logger.debug("Topic found:", found);
     next();
 })
 
-const canSeeTopic= asyncWrapper(async (req, res, next) => {
+const canSeeTopic = asyncWrapper(async (req, res, next) => {
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    
-    if(req.user.group !== adminf.group && req.user.group!=="all" && adminf.group !=="all"){
+
+    if (req.user.group !== adminf.group && req.user.group !== "all" && adminf.group !== "all") {
+        logger.debug(`user ${req.user.id} cannot see the topic ${found.topicName}`)
         return next(new AppError("You do not have permission to view this topic", httpStatus.FORBIDDEN));
     }
-    console.log("User can see topic");
+    logger.debug(`User can see topic ${found.topicName}`);
     next();
 });
 
 const canUpdateTopic = asyncWrapper(async (req, res, next) => {
     const group = req.admin.group;
-    console.log("Admin group:", group);
+    logger.debug("Admin group:", group);
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    if(group !== adminf.group && group !== "all"){
+    if (group !== adminf.group && group !== "all") {
         return next(new AppError("You do not have permission to update this topic", httpStatus.FORBIDDEN));
     }
     next();
@@ -69,18 +72,20 @@ const canUpdateTopic = asyncWrapper(async (req, res, next) => {
 
 const checkData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {  semester, subject } = req.body;
-    if(semester){ 
-        const toLow= semester.toLowerCase();
-    if(toLow!== "jun" && toLow !== "nov"){
-        return next(new AppError("Semester must be either 'Jun' or 'Nov'", httpStatus.BAD_REQUEST));
-    }}
+    const { semester, subject } = req.body;
+    if (semester) {
+        const toLow = semester.toLowerCase();
+        if (toLow !== "jun" && toLow !== "nov") {
+            return next(new AppError("Semester must be either 'Jun' or 'Nov'", httpStatus.BAD_REQUEST));
+        }
+    }
 
-    if(subject){
-        const toLow= subject.toLowerCase();
-    if(toLow!== "biology" && toLow !== "physics" && toLow !== "chemistry"){
-        return next(new AppError("Subject must be either 'Biology', 'Physics' or 'Chemistry'", httpStatus.BAD_REQUEST));
-    }}
+    if (subject) {
+        const toLow = subject.toLowerCase();
+        if (toLow !== "biology" && toLow !== "physics" && toLow !== "chemistry") {
+            return next(new AppError("Subject must be either 'Biology', 'Physics' or 'Chemistry'", httpStatus.BAD_REQUEST));
+        }
+    }
     next();
 });
 

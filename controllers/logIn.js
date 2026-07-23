@@ -7,7 +7,9 @@ const asyncWrapper = require("../middleware/asyncwrapper");
 const admin = require('../data_link/admin_data_link.js');
 const student = require('../data_link/student_data_link.js');
 const Group = require('../models/group_model.js');
-const {sanitizeInput} = require('../utils/sanitize.js');
+const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require("../utils/logger");
+
 const logIn = asyncWrapper(async (req, res, next) => {
   sanitizeInput(req.body);
   const { email, password } = req.body;
@@ -28,25 +30,26 @@ const logIn = asyncWrapper(async (req, res, next) => {
     const adminToken = jwt.sign(
       {
         id: adminUser.adminId,
-        
+
         group: adminUser.group,
         type: "admin",
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
     );
-    console.log("Admin logged in:", adminUser.email);
+    logger.info("Admin logged in:", adminUser.email);
 
     return res.status(200).json({
       status: "success",
       message: "Login successful",
       token: adminToken,
-      data : { id: adminUser.adminId,
-         email: adminUser.email,
-          group: adminUser.group,
-        name : adminUser.name,
-      role : adminUser.role,
-     }
+      data: {
+        id: adminUser.adminId,
+        email: adminUser.email,
+        group: adminUser.group,
+        name: adminUser.name,
+        role: adminUser.role,
+      }
     });
   }
 
@@ -69,7 +72,7 @@ const logIn = asyncWrapper(async (req, res, next) => {
     const studentToken = jwt.sign(
       {
         id: studentUser.studentId,
-      
+
         group: studentUser.group,
         type: "student",
       },
@@ -77,18 +80,19 @@ const logIn = asyncWrapper(async (req, res, next) => {
       { expiresIn: process.env.JWT_EXPIRATION }
     );
 
-    console.log("Student logged in:", studentUser.studentEmail);
+    logger.info("Student logged in:", studentUser.studentEmail);
 
     return res.status(200).json({
       status: "success",
       message: "Login successful",
       token: studentToken,
-      data : { id: studentUser.studentId, 
-          email: studentUser.studentEmail,
-          group: studentUser.group,
-          name : studentUser.studentName,
-          role : "student",
-         }
+      data: {
+        id: studentUser.studentId,
+        email: studentUser.studentEmail,
+        group: studentUser.group,
+        name: studentUser.studentName,
+        role: "student",
+      }
     });
   }
 
@@ -96,12 +100,12 @@ const logIn = asyncWrapper(async (req, res, next) => {
   return next(AppError.create("Email not found", 404, httpStatus.Error));
 });
 
- 
+
 const me = asyncWrapper(async (req, res, next) => {
   const userId = req.user.id;
   // name id role group assid 
   const userType = req.user.type;
-  
+
   if (userType === "admin") {
     const adminUser = await admin.findAdminById(userId);
     if (!adminUser) {
@@ -109,11 +113,12 @@ const me = asyncWrapper(async (req, res, next) => {
     }
     return res.status(200).json({
       status: "success",
-      data: { id: adminUser.adminId,
-              group: adminUser.group,
-              name : adminUser.name,
-              role : adminUser.role,
-           }
+      data: {
+        id: adminUser.adminId,
+        group: adminUser.group,
+        name: adminUser.name,
+        role: adminUser.role,
+      }
     });
   }
   else if (userType === "student") {
@@ -123,18 +128,19 @@ const me = asyncWrapper(async (req, res, next) => {
     }
     return res.status(200).json({
       status: "success",
-      data: { id: studentUser.studentId, 
-          group: studentUser.group,
-          name : studentUser.studentName,
-          role : "student",
-          assistantId : studentUser.assistantId
-         }
+      data: {
+        id: studentUser.studentId,
+        group: studentUser.group,
+        name: studentUser.studentName,
+        role: "student",
+        assistantId: studentUser.assistantId
+      }
     });
   }
 });
 
 
-const getAllGroups= asyncWrapper(async (req, res, next) => {
+const getAllGroups = asyncWrapper(async (req, res, next) => {
   const groups = await Group.findAll();
   return res.status(200).json({
     status: "success",
@@ -147,4 +153,4 @@ const getAllGroups= asyncWrapper(async (req, res, next) => {
   });
 });
 
-module.exports = { logIn , me , getAllGroups };
+module.exports = { logIn, me, getAllGroups };

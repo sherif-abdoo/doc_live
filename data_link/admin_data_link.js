@@ -8,6 +8,7 @@ const Session = require('../models/session_model');
 const Feed = require('../models/feed_model');
 const Submission = require('../models/submission_model');
 const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 
 
@@ -147,12 +148,11 @@ function findAdminByPhoneNumber(phoneNumber) {
 }
 
 function getUnmarkedSubmissionsByAdminId(assistantId) {
-    console.log(assistantId);
+    logger.db("unmarked for " + assistantId);
     return Submission.findAll({ where: { assistantId, score: null }, order: [['subId', 'DESC']] });
 }
 
 function getAllUnmarkedSubmissions() {
-    console.log("all sent")
     return Submission.findAll({ where: { score: null }, order: [['subId', 'DESC']] });
 }
 
@@ -167,7 +167,6 @@ function findSubmissionById(subId) {
     });
 }
 function getAllSubmissions() {
-    console.log("getting all submissions")
     return Submission.findAll({ order: [['subId', 'DESC']] });
 }
 

@@ -27,12 +27,12 @@ const normalize = (value) => (value === null || value === undefined ? "N/A" : va
 
 // Helper function to get student submission for assignment
 const getStudentSubmissionForAssignment = async (studentId, assignmentId) => {
-  return await submission.getSubmissionForAssignment(studentId,assignmentId);
+  return await submission.getSubmissionForAssignment(studentId, assignmentId);
 };
 
 // Helper function to get student submission for quiz
 const getStudentSubmissionForQuiz = async (studentId, quizId) => {
-  return submission.getSubmissionForQuiz(studentId,quizId);
+  return submission.getSubmissionForQuiz(studentId, quizId);
 };
 
 const getMyWeeklyReport = asyncWrapper(async (req, res) => {
@@ -79,7 +79,7 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
 
     // Default quiz grade
     let quizGrade = "N/A";
-    let quizData= null;
+    let quizData = null;
 
     // Build base report object
     const reportData = {
@@ -109,11 +109,11 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       const submission = await getStudentSubmissionForAssignment(studentId, assignmentItem.assignId);
 
       let status = "Missing";
-      let subId= "N/A"; 
+      let subId = "N/A";
       if (submission) {
-        if (submission.marked ) {
+        if (submission.marked) {
           status = "Marked";
-          subId= submission.subId;
+          subId = submission.subId;
         } else {
           status = "Pending Review";
         }
@@ -168,14 +168,14 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
         status = "Unsubmitted (Still Open)";
       }
 
-      quizData ={
+      quizData = {
         type: 'quiz',
         id: quizItem.quizId,
         columnName: `Quiz${index + 1}`,
         title: quizItem.title,
         maxPoints: quizItem.mark,
         status,
-        submissionId: submission ? submission.subId : "N/A",  
+        submissionId: submission ? submission.subId : "N/A",
         score: submission ? normalize(submission.score) : "N/A",
         percentage,
         grade,
@@ -186,14 +186,14 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
     // update reportData with final quizGrade
     reportData.quizGrade = quizGrade;
     reportData.quizData = quizData;
-    
+
     return res.status(200).json({
       status: "success",
       message: "Weekly report generated successfully",
       data: reportData
     });
   } catch (error) {
-    console.error('Error generating weekly report:', error);
+    logger.error('Error generating weekly report:', error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",

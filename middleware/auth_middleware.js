@@ -4,6 +4,7 @@ const Student = require('../models/student_model');
 const AppError = require('../utils/app.error');
 const httpStatus = require('../utils/http.status');
 const asyncWrapper = require('./asyncwrapper');
+const logger = require('../utils/logger');
 
 
 const adminProtect = async (req, res, next) => {
@@ -14,7 +15,7 @@ const adminProtect = async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
   else {
-    console.log("No authorization header found");
+    logger.debug("No authorization header found");
     return next(new AppError('Not authorized, no token', 401));
   }
 
@@ -37,7 +38,7 @@ const adminProtect = async (req, res, next) => {
       return next(new AppError('Admin not found', 401));
     }
     req.admin = decoded;
-    console.log("admin protect finished") // attach payload
+    logger.debug("admin protect finished") // attach payload
     next();
   } catch (error) {
     return next(new AppError('Not authorized, token failed', 401));
@@ -50,8 +51,8 @@ const studentProtect = async (req, res, next) => {
   // 1. Support for "Authorization: Bearer <token>"
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
-  }else {
-    console.log("No authorization header found");
+  } else {
+    logger.debug("No authorization header found");
     return next(new AppError('Not authorized, no token', 401));
   }
 
@@ -77,7 +78,7 @@ const studentProtect = async (req, res, next) => {
       return next(new AppError('Your account has been banned. ', 401));
     }
     req.student = decoded; // attach payload
-    console.log("student protect finished") 
+    logger.debug("student protect finished")
     next();
   } catch (error) {
     return next(new AppError('Not authorized, token failed', 401));
@@ -87,13 +88,13 @@ const studentProtect = async (req, res, next) => {
 
 
 const protect = asyncWrapper(async (req, res, next) => {
-   let token;
+  let token;
 
   // 1. Support for "Authorization: Bearer <token>"
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
-  }else {
-    console.log("No authorization header found");
+  } else {
+    logger.debug("No authorization header found");
     return next(new AppError('Not authorized, no token', 401));
   }
 
@@ -109,7 +110,7 @@ const protect = asyncWrapper(async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userType = decoded.type;
-    
+
     let user;
     if (userType === 'admin') {
       user = await Admin.findByPk(decoded.id);
@@ -123,10 +124,10 @@ const protect = asyncWrapper(async (req, res, next) => {
       }
       if (user.banned) {
         return next(new AppError('Your account has been banned. ', 401));
-      } 
+      }
     }
     req.user = decoded; // attach payload
-    console.log("protect finished")
+    logger.debug("protect finished")
     next();
   } catch (error) {
     return next(new AppError('Not authorized, token failed', 401));
@@ -136,9 +137,9 @@ const protect = asyncWrapper(async (req, res, next) => {
 
 
 
-module.exports = { 
+module.exports = {
   adminProtect,
   studentProtect,
   protect
- };
+};
 

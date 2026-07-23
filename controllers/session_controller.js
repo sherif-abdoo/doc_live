@@ -15,13 +15,14 @@ const jwt = require("jsonwebtoken");
 const sse = require('../utils/sseClients.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const topicDl = require('../data_link/topic_data_link.js');
+const logger = require('../utils/logger');
 
 const startSession = asyncWrapper(async (req, res) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     sanitizeInput(req.body);
     const adminId = req.admin.id;
     const sgroup = req.admin.group;
-    console.log("Admin Group:", sgroup); // Debugging line
+    logger.debug("Admin Group:", sgroup); // Debugging line
 
     const adminName = req.admin.name;
     const today = new Date();
@@ -29,7 +30,7 @@ const startSession = asyncWrapper(async (req, res) => {
     const currTopic = await topicDl.getStudentLastTopic(sgroup);
     const newSession = await admin.createSession(currTopic.topicId, sgroup, currTopic.semester, today, dayName);
     const key = `activeSession:${sgroup}`;
-    console.log("Setting cache with key:", key, "and value:", newSession);
+    logger.debug("Setting cache with key:", key, "and value:", newSession);
     setCache(key, newSession, 60 * 60 * 24);
     sse.notifyStudents(sgroup, {
         event: "session_update",
@@ -39,7 +40,7 @@ const startSession = asyncWrapper(async (req, res) => {
             topic: currTopic.title,
         },
     });
-    console.log("session created")
+    logger.info("session created")
     return res.status(201).json({
         status: "success",
         message: "Session created successfully",
@@ -73,8 +74,8 @@ const endSession = asyncWrapper(async (req, res, next) => {
 const attendSession = asyncWrapper(async (req, res, next) => {
     const stud = req.user;
     const currSession = req.activeSession;
-    console.log("🔍 User data in attendSession:", req.user);
-    console.log("Student attempting to attend session:", stud.id, "Session ID:", currSession.sessionId);
+    logger.debug("🔍 User data in attendSession:", req.user);
+    logger.debug("Student attempting to attend session:", stud.id, "Session ID:", currSession.sessionId);
 
     if (stud.type != "admin") { // means the user is a student
         const isAttended = await session.hasAttendedSession(stud.id, currSession.sessionId);
@@ -87,13 +88,13 @@ const attendSession = asyncWrapper(async (req, res, next) => {
         }
 
         await session.recordAttendance(stud.id, currSession.sessionId);
-
+        logger.info(`session ${currSession} attended by ${stud}`)
         return res.status(200).json({
             status: "success",
             data: { message: "Attendance recorded successfully" }
         });
     }
-
+    logger.info(`session ${currSession} attended by ${stud}`)
     // Otherwise, it's probably an admin
     return res.status(200).json({
         status: "success",
@@ -107,6 +108,7 @@ const getAllAttendanceForSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
     const sessionToGet = req.sessionData;
     const attendanceRecords = await session.getAllAttendanceForASession(sessionToGet.sessionId);
+    logger.info("Attendance records retrieved:", attendanceRecords);
     return res.status(200).json({
         status: "success",
         results: attendanceRecords.length,

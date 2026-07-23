@@ -3,15 +3,17 @@ const bcrypt = require('bcrypt');
 const httpStatus = require('../utils/http.status');
 const AppError = require('../utils/app.error');
 const asyncWrapper = require('./asyncwrapper');
-const {where} = require("sequelize");
+const { where } = require("sequelize");
 const jwt = require("jsonwebtoken");
 const student = require('../data_link/student_data_link');
 const admin = require('../data_link/admin_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger')
 
-const studentFound= asyncWrapper(async (req, res, next) => {
+
+const studentFound = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {studentEmail } = req.body;
+    const { studentEmail } = req.body;
     const adFound = await admin.findAdminByEmail(studentEmail);
     if (adFound) {
         const error = AppError.create("Email already exists", 400, httpStatus.Error);
@@ -28,7 +30,7 @@ const studentFound= asyncWrapper(async (req, res, next) => {
 const phoneNumberexists = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { studentPhoneNumber } = req.body;
-    if(!studentPhoneNumber){
+    if (!studentPhoneNumber) {
         return next(new AppError("Phone number is required", 400));
     }
     const stdFound = await student.findStudentByPhoneNumber(studentPhoneNumber);
@@ -48,31 +50,31 @@ const attendedSessionBefore = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { sessionId } = req.params;
     const decoded = jwt.verify(req.headers.authorization.split(' ')[1], process.env.JWT_SECRET);
-    const studentId = decoded.id;  
-    console.log("Nope");
+    const studentId = decoded.id;
     const attendanceRecord = await student.findAttendanceByStudentAndSession(studentId, sessionId);
-    console.log("Yes");
     if (attendanceRecord) {
+        logger.debug(`Student ${studentId} has already attended or is currently attending this session ${sessionId}`)
         const error = AppError.create("Student has already attended or is currently attending this session", 400, httpStatus.Error);
         return next(error);
     }
+    logger.debug(`Student ${studentId} is attending session ${sessionId}`)
     next();
 })
 
-const canSeeSubmission = asyncWrapper(async (req,res, next) => {
+const canSeeSubmission = asyncWrapper(async (req, res, next) => {
     const sub = req.found;
     const studentId = req.student.id;
-    if(!studentId){
+    if (!studentId) {
         return next(new AppError("student not found", httpStatus.NOT_FOUND))
     }
-    console.log("StudentId: ",studentId);
-    if(sub.studentId !== studentId ){
+    logger.debug("StudentId: ", studentId);
+    if (sub.studentId !== studentId) {
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
     next();
 })
 
-module.exports = {   
+module.exports = {
     studentFound,
     attendedSessionBefore,
     canSeeSubmission,

@@ -2,6 +2,7 @@ const SSE = require('../utils/sseClients');
 const asyncWrapper = require("../middleware/asyncwrapper");
 const student = require('../data_link/student_data_link.js');
 const admin = require('../data_link/admin_data_link.js');
+const logger = require("../utils/logger");
 
 const establishAdminConnection = async (req, res, next) => {
   if (!req.admin) {
@@ -13,7 +14,7 @@ const establishAdminConnection = async (req, res, next) => {
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders?.();
-  const adminFound  = await admin.findAdminById(req.admin.id);
+  const adminFound = await admin.findAdminById(req.admin.id);
   // Confirm connection event
   res.write("event: connected\n");
   res.write(`data: ${JSON.stringify({
@@ -32,7 +33,7 @@ const establishAdminConnection = async (req, res, next) => {
 
   // Heartbeat to keep connection alive
   const hb = setInterval(() => {
-    console.log("💓 Heartbeat sent to admin");
+    logger.debug("💓 Heartbeat sent to admin");
     res.write(": ping\n\n");
   }, 25000);
 
@@ -44,21 +45,21 @@ const establishAdminConnection = async (req, res, next) => {
 };
 
 const establishStudentConnection = async (req, res) => {
-  console.log("🔍 Incoming SSE request for student...");
+  logger.debug("🔍 Incoming SSE request for student...");
 
   if (!req.student) {
-    console.log("❌ No student attached to request");
+    logger.debug("❌ No student attached to request");
     return res.status(401).json({ message: "Unauthorized: No student found" });
   }
 
-  console.log("✅ Student object from req:", req.student);
+  logger.debug("✅ Student object from req:", req.student);
   const found = await student.findStudentById(req.student.id);
   if (!found) {
-    console.log("❌ Student not found in DB:", req.student.id);
+    logger.debug("❌ Student not found in DB:", req.student.id);
     return res.status(404).json({ message: "Student not found in DB" });
   }
 
-  console.log("✅ Student found in DB:", found.studentEmail);
+  logger.db("✅ Student found in DB:", found.studentEmail);
 
   // SSE headers
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -80,11 +81,11 @@ const establishStudentConnection = async (req, res) => {
 
   // Add student to the SSE clients pool
   SSE.addStudentClient(res, found.studentEmail, found.studentName, found.group);
-  console.log(`👨‍🎓 Added ${found.studentEmail} to SSE clients pool`);
+  logger.info(`👨‍🎓 Added ${found.studentEmail} to SSE clients pool`);
 
   // Heartbeat to keep connection alive
   const hb = setInterval(() => {
-    console.log("💓 Heartbeat sent to student");
+    logger.debug("💓 Heartbeat sent to student");
     res.write(": ping\n\n");
   }, 25000);
 
@@ -92,10 +93,10 @@ const establishStudentConnection = async (req, res) => {
   req.on("close", () => {
     clearInterval(hb);
     SSE.removeClient(res);
-    console.log(`❌ SSE closed for student ${found.studentEmail}`);
+    logger.debug(`❌ SSE closed for student ${found.studentEmail}`);
   });
 
-  console.log(`✅ SSE established and waiting for student ${found.studentEmail}`);
+  logger.info(`✅ SSE established and waiting for student ${found.studentEmail}`);
 };
 
 

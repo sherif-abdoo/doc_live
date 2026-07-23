@@ -15,14 +15,16 @@ const Material = require('../models/material_model');
 const material = require('../data_link/material_data_link.js');
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
+const logger = require('../utils/logger');
+
 
 const createMaterial = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const {title, description, document, link, topicId} = req.body;
+    const { title, description, document, link, topicId } = req.body;
     const publisher = req.admin.id;
     const uploadDate = new Date();
     const foundTopic = await topic.getTopicById(topicId);
-    console.log("Creating material with data:", { title, description, document, link, topicId, publisher, uploadDate });
+    logger.info("Creating material with data:", { title, description, document, link, topicId, publisher, uploadDate });
     const newMaterial = await material.createMaterial(title, description, document, link, topicId, publisher, uploadDate);
     // ✅ Create a new response object that includes subject
     const materialWithSubject = {
@@ -41,19 +43,19 @@ const getAllMaterials = asyncWrapper(async (req, res, next) => {
     const materials = (group === 'all'
         ? await material.getAllMaterialsAllGroups()
         : await material.getAllMaterialsByGroup(group));
-    
+
     const materialsWithType = materials.map(mat => {
         // Convert Sequelize instance to plain object
         const materialData = mat.toJSON ? mat.toJSON() : JSON.parse(JSON.stringify(mat));
         const documentUrl = materialData.document || '';
-    
+
         const last4Chars = documentUrl.slice(-4).toLowerCase();
         const materialType = last4Chars === '.pdf' ? 'pdf' : 'url';
         materialData.type = materialType;
-        
+
         return materialData;
     });
-    
+
     return res.status(200).json({
         status: "success",
         results: materialsWithType.length,
