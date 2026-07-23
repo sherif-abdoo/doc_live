@@ -15,6 +15,8 @@ const { Op } = require("sequelize");
 const material = require('../data_link/material_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const Session = require('../models/session_model.js');
+const logger = require('../utils/logger')
+
 
 const createTopic = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);

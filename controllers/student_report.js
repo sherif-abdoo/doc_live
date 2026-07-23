@@ -21,6 +21,8 @@ const Topic = require('../models/topic_model');
 const topicDl = require('../data_link/topic_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const sessionDl = require('../data_link/session_data_link.js');
+const logger = require('../utils/logger')
+
 
 // Helper: normalize null/undefined values to "N/A"
 const normalize = (value) => (value === null || value === undefined ? "N/A" : value);
