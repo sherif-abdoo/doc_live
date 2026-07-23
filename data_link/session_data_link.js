@@ -1,24 +1,27 @@
 const sequelize = require('../config/database');
 const Session = require('../models/session_model');
-const {where} = require("sequelize");
-const {verify} = require("jsonwebtoken");
+const { where } = require("sequelize");
+const { verify } = require("jsonwebtoken");
 const Admin = require('../models/admin_model');
 const { Op, fn, col } = require("sequelize")
 const Attendance = require('../models/attendance_model');
 const Topic = require('../models/topic_model');
-const {getCache} = require('../utils/cache');
+const { getCache, setCache } = require('../utils/cache');
+const logger = require('../utils/logger')
+
 Session.belongsTo(Topic, { foreignKey: 'topicId' });
 Session.hasMany(Attendance, { foreignKey: 'sessionId' });
 Attendance.belongsTo(Session, { foreignKey: 'sessionId' });
 
 
 
-function findSessionById(sessionId){
-    return Session.findOne({where : { sessionId } });
+function findSessionById(sessionId) {
+  return Session.findOne({ where: { sessionId } });
 }
 
-function UpdateSession(sessionId, dateAndTime){
-    return Session.update({dateAndTime},{where : { sessionId } })};
+function UpdateSession(sessionId, dateAndTime) {
+  return Session.update({ dateAndTime }, { where: { sessionId } })
+};
 
 // async function findAllUpcomingSessionByGroup(group) {
 //     return await Session.findAll({
@@ -37,38 +40,38 @@ function UpdateSession(sessionId, dateAndTime){
 // }
 
 function getActiveSessionByGroup(group) {
-    return Session.findOne({
-        where: {
-            group,
-            finished: false
-        },
-        order: [['dateAndTime', 'DESC']]
-    });
+  return Session.findOne({
+    where: {
+      group,
+      finished: false
+    },
+    order: [['dateAndTime', 'DESC']]
+  });
 }
 
 function hasAttendedSession(studentId, sessionId) {
-    return Attendance.findOne({
-        where: {
-            studentId,
-            sessionId
-        }
-    });
+  return Attendance.findOne({
+    where: {
+      studentId,
+      sessionId
+    }
+  });
 }
 
 function recordAttendance(studentId, sessionId) {
-    return Attendance.create({
-        studentId,
-        sessionId,
-        recordedAt: new Date()
-    });
+  return Attendance.create({
+    studentId,
+    sessionId,
+    recordedAt: new Date()
+  });
 }
 
-async function getAllAttendanceForASession(sessionId){
-    return await Attendance.findAll({
-        where: { sessionId },
-        attributes : {include : [['attId','id']]},
-        order: [['recordedAt', 'ASC']]
-    });
+async function getAllAttendanceForASession(sessionId) {
+  return await Attendance.findAll({
+    where: { sessionId },
+    attributes: { include: [['attId', 'id']] },
+    order: [['recordedAt', 'ASC']]
+  });
 }
 
 async function findAllSessionsByAdminGroup(group) {
@@ -98,7 +101,7 @@ async function findAllSessionsByStudentGroup(group, studentId) {
       },
       {
         model: Attendance,
-        attributes: [], 
+        attributes: [],
         where: { studentId: studentId },
         required: false // LEFT JOIN
       }
@@ -194,28 +197,53 @@ function deleteSessionsBySemester(semester) {
   });
 }
 
-function getActiveSessionByAGroup(group) {
+function closeOldSessions() {
+  const oneDayAgo = new Date(Date.now() - 60 * 60 * 24 * 1000);
+  return Session.update(
+    { finished: true },
+    {
+      where: {
+        finished: false,
+        dateAndTime: { [Op.lt]: oneDayAgo }
+      }
+    }
+  );
+}
+
+async function getActiveSessionByAGroup(group) {
+  await closeOldSessions();
   let session = getCache(`activeSession:all`);
-  if(!session){
-      session = getCache(`activeSession:${group}`);
+  if (!session) {
+    session = getCache(`activeSession:${group}`);
+    if (!session) {
+      logger.db("finding session from db")
+      return Session.findOne({
+        where: { finished: false, group },
+        order: [['sessionId', 'DESC']]
+      })
+    }
   }
   return session;
 }
 
 
-function getLastCreatedSessionByGroup(adminGroup){
-  if(adminGroup==="all")  {
+
+async function getLastCreatedSessionByGroup(adminGroup) {
+  await closeOldSessions();
+  if (adminGroup === "all") {
     return Session.findOne({
-        order: [['dateAndTime', 'DESC']]
+      order: [['dateAndTime', 'DESC']]
     });
   }
-   else{ return Session.findOne({
-        where: { group: adminGroup },
-        order: [['dateAndTime', 'DESC']]
+  else {
+    return Session.findOne({
+      where: { group: adminGroup },
+      order: [['dateAndTime', 'DESC']]
     });
-}}
+  }
+}
 
-async function existingSession(adminGroup){
+async function existingSession(adminGroup) {
   const now = new Date();
   const twelveAgo = new Date(now.getTime() - 12.5 * 60 * 60 * 1000);
   return await Session.findOne({
@@ -226,24 +254,25 @@ async function existingSession(adminGroup){
         [Op.between]: [twelveAgo, now],
       },
     },
-  })};
+  })
+};
 
-module.exports={
-    findSessionById,
-    UpdateSession,
-//    findAllUpcomingSessionByGroup,
-    getActiveSessionByGroup,
-    hasAttendedSession,
-    recordAttendance,
-    getAllAttendanceForASession,
-    findAllSessionsByAdminGroup,
-    findAllSessionsByStudentGroup,
-    countAttendedSessionsByTopic,
-    countTotalSessionsByTopic,
-    getSessionsByTopic,
-    deleteAttendanceBySemester,
-    deleteSessionsBySemester,
-    getActiveSessionByAGroup,
-    getLastCreatedSessionByGroup,
-    existingSession
+module.exports = {
+  findSessionById,
+  UpdateSession,
+  //    findAllUpcomingSessionByGroup,
+  getActiveSessionByGroup,
+  hasAttendedSession,
+  recordAttendance,
+  getAllAttendanceForASession,
+  findAllSessionsByAdminGroup,
+  findAllSessionsByStudentGroup,
+  countAttendedSessionsByTopic,
+  countTotalSessionsByTopic,
+  getSessionsByTopic,
+  deleteAttendanceBySemester,
+  deleteSessionsBySemester,
+  getActiveSessionByAGroup,
+  getLastCreatedSessionByGroup,
+  existingSession
 }
