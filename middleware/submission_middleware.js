@@ -7,6 +7,7 @@ const admin = require('../data_link/admin_data_link.js');
 const Submission = require('../models/submission_model.js');
 const quiz = require('../data_link/quiz_data_link.js');
 const assignment = require('../data_link/assignment_data_link.js');
+const student = require('../data_link/student_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const logger = require('../utils/logger.js');
 
@@ -27,13 +28,14 @@ const canSeeSubmission = asyncWrapper(async (req, res, next) => {
     const sub = req.found;
     const subAdmin = await admin.findAdminById(sub.assistantId)
     const adminId = req.admin.id;
+    const subStudent = await student.findStudentById(sub.studentId);
     if (!adminId) {
         logger.debug("admin not found : ", adminId)
         return next(new AppError("Admin not found", httpStatus.NOT_FOUND))
     }
     logger.debug("AdminId: ", adminId);
     logger.debug("group: ", subAdmin.group, "   admin: ", req.admin.group)
-    if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group !== req.admin.group) {
+    if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group !== req.admin.group && subStudent.group !== req.admin.group) {
         logger.debug("No access to the submission: ", sub.id, " by admin: ", adminId)
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
