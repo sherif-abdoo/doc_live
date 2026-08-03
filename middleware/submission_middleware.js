@@ -58,12 +58,13 @@ const marked = asyncWrapper(async (req, res, next) => {
 
 const subMarked = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    logger.debug(`[admin : ${req.admin.email}] Checking if submission is marked: ${found.id}`);
+    const requester = req.admin ? `[admin : ${req.admin.email}]` : req.student ? `[student : ${req.student.email}]` : `[system]`;
+    logger.debug(`${requester} Checking if submission is marked: ${found.id}`);
     if (!found.marked) {
-        logger.info(`[admin : ${req.admin.email}] Submission not marked yet: ${found.id}`);
+        logger.info(`${requester} Submission not marked yet: ${found.id}`);
         return next(new AppError("Submission not marked yet", httpStatus.BAD_REQUEST));
     }
-    logger.debug(`[admin : ${req.admin.email}] Submission is marked: ${found.id}`);
+    logger.debug(`${requester} Submission is marked: ${found.id}`);
     next();
 })
 
