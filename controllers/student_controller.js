@@ -35,7 +35,7 @@ const studentRegister = asyncWrapper(async (req, res) => {
     semester
   } = req.body;
   const groupl = group.toLowerCase();
-  // Create the student
+  logger.debug(`[student : ${studentEmail}] Registering student: ${studentName}, group: ${groupl}, semester: ${semester}`);
   await student.createStudent(
     studentName,
     studentEmail,
@@ -49,13 +49,13 @@ const studentRegister = asyncWrapper(async (req, res) => {
   );
   await student.registerStudent(studentEmail, group, semester, studentPhoneNumber);
 
-  // Notify only assistants in the same group
   notifyAssistants(group, {
     event: "student_register",
     message: `New student ${studentName} registered`,
     Student: { id: Student.studentId, studentName, studentEmail, group }
   });
 
+  logger.info(`[student : ${studentEmail}] Registered successfully`);
   return res.status(201).json({
     status: "success",
     data: { message: "Student registered successfully" }
@@ -64,9 +64,11 @@ const studentRegister = asyncWrapper(async (req, res) => {
 
 const showMyAdminProfile = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
+  logger.debug(`[student : ${req.student.email}] Fetching admin profile for studentId: ${studentId}`);
   const found = await student.findStudentById(studentId);
   const adminId = found.assistantId;
   const adminProfile = await admin.findAdminById(adminId);
+  logger.info(`[student : ${req.student.email}] Admin profile fetched: ${adminProfile.email}`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -81,7 +83,9 @@ const showMyAdminProfile = asyncWrapper(async (req, res) => {
 
 const showMyProfile = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
+  logger.debug(`[student : ${req.student.email}] Fetching profile for studentId: ${studentId}`);
   const studentProfile = await student.findStudentById(studentId);
+  logger.info(`[student : ${req.student.email}] Profile fetched successfully`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -101,13 +105,16 @@ const showMyProfile = asyncWrapper(async (req, res) => {
 
 const getMyFeed = asyncWrapper(async (req, res, next) => {
   const studentId = req.student.id;
+  logger.debug(`[student : ${req.student.email}] Fetching feed for studentId: ${studentId}`);
   const studentProfile = await student.findStudentById(studentId);
   const assistantId = studentProfile.assistantId;
   const semester = studentProfile.semester;
   const feeds = await feed.getFeedByAssistantIdAndSemester(assistantId, semester);
   if (!feeds || feeds.length === 0) {
+    logger.info(`[student : ${req.student.email}] No feed found`);
     return next(new AppError("No feed found for your assistant", httpStatus.NOT_FOUND));
   }
+  logger.info(`[student : ${req.student.email}] Feed fetched, count: ${feeds.length}`);
   return res.status(200).json({
     status: "success",
     results: feeds.length,
@@ -117,6 +124,7 @@ const getMyFeed = asyncWrapper(async (req, res, next) => {
 
 const showMySubmission = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
+  logger.debug(`[student : ${req.student.email}] Fetching submissions for studentId: ${studentId}`);
   const profile = await student.findStudentById(studentId);
 
   // Set up associations
@@ -194,6 +202,7 @@ const showMySubmission = asyncWrapper(async (req, res) => {
 
   enriched.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
+  logger.info(`[student : ${req.student.email}] Submissions fetched, count: ${enriched.length}`);
   return res.status(200).json({
     status: "success",
     message: `Submissions for student ${profile.studentName}`,
@@ -223,8 +232,9 @@ const showASubmission = asyncWrapper(async (req, res) => {
 
 const getMarkForSubmission = asyncWrapper(async (req, res) => {
   const found = req.found;
+  logger.debug(`[student : ${req.student.email}] Fetching mark for submissionId: ${found.subId}`);
   const taName = await admin.getAdminNameById(found.assistantId);
-  logger.info(taName.name);
+  logger.info(`[student : ${req.student.email}] Mark fetched for submissionId: ${found.subId}, score: ${found.score}`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -241,10 +251,11 @@ const getMarkForSubmission = asyncWrapper(async (req, res) => {
 
 // Student quiz trend: per-quiz points grouped by week, for line chart
 const getQuizTrend = asyncWrapper(async (req, res) => {
-  const { from, to } = req.query; // optional ISO dates
+  const { from, to } = req.query;
   const { Op } = require('sequelize');
   const Submission = require('../models/submission_model');
   const studentId = req.student.id;
+  logger.debug(`[student : ${req.student.email}] Fetching quiz trend, from: ${from}, to: ${to}`);
   const fromDate = from ? new Date(from) : null;
   const toDate = to ? new Date(to) : null;
 
@@ -276,6 +287,7 @@ const getQuizTrend = asyncWrapper(async (req, res) => {
   // For chart: y-axis = Week, x-axis= Row grade
   const chartPoints = points.map(p => ({ y: p.week, x: p.score, quizId: p.quizId, date: p.date }));
 
+  logger.info(`[student : ${req.student.email}] Quiz trend fetched, points: ${points.length}`);
   return res.status(200).json({ status: 'success', data: { points, chartPoints } });
 })
 

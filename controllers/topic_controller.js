@@ -23,9 +23,9 @@ const createTopic = asyncWrapper(async (req, res) => {
     const { topicName, semester, subject } = req.body;
     const publisher = req.admin.id;
     const group = req.admin.group;
-    logger.debug("publisher id:", publisher)
-    logger.info("Creating topic with data:", { topicName, semester, subject, group });
+    logger.debug(`[admin : ${req.admin.email}] Creating topic - name: ${topicName}, subject: ${subject}, semester: ${semester}, group: ${group}`);
     const newTopic = await topic.createTopic(topicName, semester, publisher, subject, group);
+    logger.info(`[admin : ${req.admin.email}] Topic created successfully, topicId: ${newTopic.topicId}`);
     return res.status(201).json({
         status: "success",
         message: "Topic created successfully",
@@ -36,13 +36,14 @@ const createTopic = asyncWrapper(async (req, res) => {
             semester: newTopic.semester,
             group: group
         }
-
     });
 });
 
 const getTopicById = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { topicId } = req.params;
+    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    logger.debug(`${requester} Fetching topic by id: ${topicId}`);
     const topicFound = await topic.getTopicById(topicId);
     const quizzes = (await quiz.getQuizzesByTopicId(topicId))
         .map(q => {
@@ -52,13 +53,13 @@ const getTopicById = asyncWrapper(async (req, res, next) => {
 
     const assignments = (await assignment.getAssignmentsByTopicId(topicId))
         .map(a => {
-            const plain = a.get({ plain: true }); // turn Sequelize model into plain object
-            return { ...plain, type: 'pdf' };     // add new field
+            const plain = a.get({ plain: true });
+            return { ...plain, type: 'pdf' };
         });
 
     const materials = (await material.getMaterialByTopicId(topicId))
         .map(a => {
-            const plain = a.get({ plain: true }); // Convert Sequelize model to plain object
+            const plain = a.get({ plain: true });
 
             let type;
             const hasDocument = !!plain.document;
@@ -67,11 +68,12 @@ const getTopicById = asyncWrapper(async (req, res, next) => {
             if (hasDocument && hasLink) type = 'both';
             else if (hasDocument) type = 'pdf';
             else if (hasLink) type = 'url';
-            else type = 'unknown'; // fallback if neither exists
+            else type = 'unknown';
 
             return { ...plain, type };
         });
 
+    logger.info(`${requester} Topic fetched: ${topicFound.topicName}, quizzes: ${quizzes.length}, assignments: ${assignments.length}, materials: ${materials.length}`);
     return res.status(200).json({
         status: "success",
         data: {
@@ -88,11 +90,13 @@ const getTopicById = asyncWrapper(async (req, res, next) => {
 
 const getAllTopics = asyncWrapper(async (req, res, next) => {
     const group = req.user.group;
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Fetching all topics for group: ${group}`);
     let topics = (group === 'all') ?
         await topic.getAllTopics() :
         await topic.getAllTopicsByGroup(group);
 
-    logger.info("All topics for group", group, ":", topics);
+    logger.info(`${requester} Retrieved ${topics.length} topics for group: ${group}`);
     return res.status(200).json({
         status: "success",
         message: `Retrieved ${topics.length} topics for group ${group}`,
@@ -106,10 +110,12 @@ const updateTopic = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const found = req.found;
     const { topicName, semester, subject } = req.body;
+    logger.debug(`[admin : ${req.admin.email}] Updating topic: ${found.topicId}, new name: ${topicName}, semester: ${semester}, subject: ${subject}`);
     found.topicName = topicName || found.topicName;
     found.semester = semester || found.semester;
     found.subject = subject || found.subject;
     await found.save();
+    logger.info(`[admin : ${req.admin.email}] Topic updated successfully, topicId: ${found.topicId}`);
     res.status(200).json({
         status: "success",
         message: `topic ${topicName} updated successfully `,
@@ -126,10 +132,12 @@ const updateTopic = asyncWrapper(async (req, res, next) => {
 
 const deleteTopic = asyncWrapper(async (req, res, next) => {
     const found = req.found;
+    logger.debug(`[admin : ${req.admin.email}] Deleting topic: ${found.topicId} - ${found.topicName}`);
     await Session.destroy({
         where: { topicId: found.topicId }
     });
     await found.destroy();
+    logger.info(`[admin : ${req.admin.email}] Topic deleted successfully, topicId: ${found.topicId}`);
     res.status(200).json({
         status: "success",
         message: `topic with id: ${req.params.topicId} is deleted`

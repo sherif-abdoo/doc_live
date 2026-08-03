@@ -20,53 +20,67 @@ const logger = require('../utils/logger')
 const checkTopicExists = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { topicId } = req.body;
+    logger.debug(`[admin : ${req.admin.email}] Checking if topic exists: ${topicId}`);
     const found = await topic.getTopicById(topicId);
     if (!found) {
+        logger.info(`[admin : ${req.admin.email}] Topic not found: ${topicId}`);
         return next(new AppError(`Topic with id ${topicId} not found`, httpStatus.NOT_FOUND));
     }
+    logger.debug(`[admin : ${req.admin.email}] Topic found: ${topicId}`);
     next();
 });
 
 const checkInputData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { title, description, document, link, topicId } = req.body;
+    logger.debug(`[admin : ${req.admin.email}] Validating material fields`);
     if (!title || !topicId) {
+        logger.info(`[admin : ${req.admin.email}] Missing required fields`);
         return next(new AppError("Missing required fields: title, description, document, topicId", httpStatus.BAD_REQUEST));
     }
+    logger.debug(`[admin : ${req.admin.email}] Material fields valid: ${title}`);
     next();
 });
 
 const findMaterialById = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { id } = req.params;
+    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    logger.debug(`${requester} Looking up material: ${id}`);
     const found = await material.getMaterialById(id);
     if (!found) {
+        logger.info(`${requester} Material not found: ${id}`);
         return next(new AppError(`Material with id ${id} not found`, httpStatus.NOT_FOUND));
     }
     req.found = found;
-    logger.debug("Found material:", found);
+    logger.debug(`${requester} Material found: ${id}`);
     next();
 });
 
 const canSeeMaterial = asyncWrapper(async (req, res, next) => {
     const materialf = req.found;
     const userGroup = req.user.group;
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Checking view permission for material: ${materialf.materialId || materialf.id}`);
     const publisher = await admin.getAdminById(materialf.publisher);
     if (publisher.group !== 'all' && publisher.group !== userGroup && userGroup !== 'all') {
+        logger.info(`${requester} Permission denied - publisher group: ${publisher.group}, user group: ${userGroup}`);
         return next(new AppError("You do not have permission to view this material", httpStatus.FORBIDDEN));
     }
-    logger.debug("User can see material");
+    logger.debug(`${requester} View permission granted`);
     next();
 });
 
 const AdminViewMaterial = asyncWrapper(async (req, res, next) => {
     const materialf = req.found;
     const userGroup = req.admin.group;
+    logger.debug(`[admin : ${req.admin.email}] Checking modify permission for material: ${materialf.materialId || materialf.id}`);
     const publisher = await admin.getAdminById(materialf.publisher);
     if (userGroup !== 'all' && publisher.group !== userGroup) {
+        logger.info(`[admin : ${req.admin.email}] Modify permission denied - publisher group: ${publisher.group}, admin group: ${userGroup}`);
         return next(new AppError("You do not have permission to modify this material", httpStatus.FORBIDDEN));
     }
-    logger.debug("User can see material");
+    logger.debug(`[admin : ${req.admin.email}] Modify permission granted`);
     next();
 });
 

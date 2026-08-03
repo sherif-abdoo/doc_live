@@ -41,11 +41,13 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
   sanitizeInput(req.params);
   const { topicId } = req.params;
   const studentId = req.student.id;
+  logger.debug(`[student : ${req.student.email}] Requesting weekly report, topicId: ${topicId || 'latest'}`);
 
   try {
     // Get student data
     const studentData = await student.findStudentById(studentId);
     if (!studentData) {
+      logger.info(`[student : ${req.student.email}] Student not found`);
       return res.status(404).json({
         status: "error",
         message: "Student not found"
@@ -57,12 +59,14 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
     if (topicId) {
       topic = await topicDl.getTopicById(topicId);
       if (!topic) {
+        logger.info(`[student : ${req.student.email}] Topic not found: ${topicId}`);
         return res.status(404).json({
           status: "error",
           message: "Topic not found"
         });
       }
       if (topic.group !== studentData.group && topic.group !== "all") {
+        logger.info(`[student : ${req.student.email}] Unauthorized access to topic: ${topicId}`);
         return res.status(403).json({
           status: "error",
           message: "You are not authorized to access this topic"
@@ -72,12 +76,15 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       topic = await topicDl.getStudentLastTopic(req.student.group);
     }
 
+    logger.debug(`[student : ${req.student.email}] Topic resolved: ${topic.topicId} - ${topic.topicName}`);
+
     const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
     const attendedSessions = await sessionDl.countAttendedSessionsByTopic(studentId, topic.topicId);
 
     // Get assignments & quizzes
     const assignments = await assignment.getAssignmentsByTopicId(topic.topicId);
     const quizzes = await quiz.getQuizzesByTopicId(topic.topicId);
+    logger.debug(`[student : ${req.student.email}] Assignments: ${assignments.length}, Quizzes: ${quizzes.length}`);
 
     // Default quiz grade
     let quizGrade = "N/A";
@@ -96,14 +103,12 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       quizGrade,
       quizData,
       materials: [],
-      sessions: [] // 👈 sessions go here
+      sessions: []
     };
 
     const now = new Date();
 
-    // ==================== ADD SESSIONS SECTION ====================
     reportData.sessions = await sessionDl.getSessionsByTopic(topic.topicId, studentId);
-    // ===============================================================
 
     // Process assignments
     for (let index = 0; index < assignments.length; index++) {
@@ -114,8 +119,6 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       let subId = "N/A";
       let hasMarkedPdf = false;
       if (submission) {
-        // A submission is "marked" once a score has been given, regardless of
-        // whether an assistant attached a marked PDF.
         const isMarked = submission.score !== null && submission.score !== undefined;
         if (isMarked) {
           status = "Marked";
@@ -153,7 +156,6 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       let hasMarkedPdf = false;
 
       if (submission) {
-        // "Marked" once a score is present, even without a marked PDF attached.
         const isMarked = submission.score !== null && submission.score !== undefined;
         if (isMarked) {
           status = "Marked";
@@ -174,7 +176,7 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
           else if (percentage >= 50) grade = 'C';
           else grade = 'U';
 
-          quizGrade = grade; // update top-level quiz grade
+          quizGrade = grade;
         }
       } else if (quizItem.endDate && new Date(quizItem.endDate) > now) {
         status = "Unsubmitted (Still Open)";
@@ -196,17 +198,17 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       };
     }
 
-    // update reportData with final quizGrade
     reportData.quizGrade = quizGrade;
     reportData.quizData = quizData;
 
+    logger.info(`[student : ${req.student.email}] Weekly report generated for topic: ${topic.topicId} - ${topic.topicName}`);
     return res.status(200).json({
       status: "success",
       message: "Weekly report generated successfully",
       data: reportData
     });
   } catch (error) {
-    logger.error('Error generating weekly report:', error);
+    logger.error(`[student : ${req.student.email}] Error generating weekly report: ${error.message}`);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",

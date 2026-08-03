@@ -22,15 +22,17 @@ const startSession = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const adminId = req.admin.id;
     const sgroup = req.admin.group;
-    logger.debug("Admin Group:", sgroup); // Debugging line
+    logger.debug(`[admin : ${req.admin.email}] Admin group: ${sgroup}`);
 
     const adminName = req.admin.name;
     const today = new Date();
     const dayName = days[today.getDay()];
     const currTopic = await topicDl.getStudentLastTopic(sgroup);
+    logger.debug(`[admin : ${req.admin.email}] Current topic: ${currTopic.topicId} - ${currTopic.title}`);
+
     const newSession = await admin.createSession(currTopic.topicId, sgroup, currTopic.semester, today, dayName);
     const key = `activeSession:${sgroup}`;
-    logger.debug("Setting cache with key:", key, "and value:", newSession);
+    logger.debug(`[admin : ${req.admin.email}] Setting cache with key: ${key}`);
     setCache(key, newSession, 60 * 60 * 24);
     sse.notifyStudents(sgroup, {
         event: "session_update",
@@ -40,7 +42,7 @@ const startSession = asyncWrapper(async (req, res) => {
             topic: currTopic.title,
         },
     });
-    logger.info("session created")
+    logger.info(`[admin : ${req.admin.email}] Session created successfully for group: ${sgroup}, sessionId: ${newSession.sessionId}`);
     return res.status(201).json({
         status: "success",
         message: "Session created successfully",
@@ -58,13 +60,16 @@ const startSession = asyncWrapper(async (req, res) => {
 
 const endSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
+    logger.debug(`[admin : ${req.admin.email}] Ending session for group: ${adminGroup}`);
     const currSession = await session.getActiveSessionByAGroup(adminGroup);
     if (!currSession) {
+        logger.info(`[admin : ${req.admin.email}] No active session found for group: ${adminGroup}`);
         return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
     }
     currSession.finished = true;
     await currSession.save();
     deleteCache(`activeSession:${adminGroup}`);
+    logger.info(`[admin : ${req.admin.email}] Session ${currSession.sessionId} ended for group: ${adminGroup}`);
     return res.status(200).json({
         status: "success",
         data: { message: "Session ended successfully" }
@@ -74,13 +79,14 @@ const endSession = asyncWrapper(async (req, res, next) => {
 const attendSession = asyncWrapper(async (req, res, next) => {
     const stud = req.user;
     const currSession = req.activeSession;
-    logger.debug("🔍 User data in attendSession:", req.user);
-    logger.debug("Student attempting to attend session:", stud.id, "Session ID:", currSession.sessionId);
+    const requester = stud.type === 'student' ? `[student : ${req.user.email}]` : `[admin : ${req.user.email}]`;
+    logger.debug(`${requester} Attempting to attend session: ${currSession.sessionId}`);
 
-    if (stud.type != "admin") { // means the user is a student
+    if (stud.type != "admin") {
         const isAttended = await session.hasAttendedSession(stud.id, currSession.sessionId);
 
         if (isAttended) {
+            logger.info(`${requester} Already attended session: ${currSession.sessionId}`);
             return res.status(200).json({
                 status: "success",
                 data: { message: "Re-attending this session" }
@@ -88,14 +94,13 @@ const attendSession = asyncWrapper(async (req, res, next) => {
         }
 
         await session.recordAttendance(stud.id, currSession.sessionId);
-        logger.info(`session ${currSession} attended by ${stud}`)
+        logger.info(`${requester} Attendance recorded for session: ${currSession.sessionId}`);
         return res.status(200).json({
             status: "success",
             data: { message: "Attendance recorded successfully" }
         });
     }
-    logger.info(`session ${currSession} attended by ${stud}`)
-    // Otherwise, it's probably an admin
+    logger.info(`${requester} Admin entering session: ${currSession.sessionId}`);
     return res.status(200).json({
         status: "success",
         data: { message: "Admin entering session." }
@@ -107,8 +112,9 @@ const getAllAttendanceForSession = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const adminGroup = req.admin.group;
     const sessionToGet = req.sessionData;
+    logger.debug(`[admin : ${req.admin.email}] Fetching attendance for session: ${sessionToGet.sessionId}, group: ${adminGroup}`);
     const attendanceRecords = await session.getAllAttendanceForASession(sessionToGet.sessionId);
-    logger.info("Attendance records retrieved:", attendanceRecords);
+    logger.info(`[admin : ${req.admin.email}] Attendance records retrieved for session: ${sessionToGet.sessionId}, count: ${attendanceRecords.length}`);
     return res.status(200).json({
         status: "success",
         results: attendanceRecords.length,
@@ -118,14 +124,17 @@ const getAllAttendanceForSession = asyncWrapper(async (req, res, next) => {
 
 const getAllSessions = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group;
-    const userType = req.user.type; // 'student' or 'admin'
+    const userType = req.user.type;
     const userId = req.user.id;
+    const requester = userType === 'student' ? `[student : ${req.user.email}]` : `[admin : ${req.user.email}]`;
+    logger.debug(`${requester} Fetching all sessions for group: ${userGroup}, type: ${userType}`);
     let sessions;
     if (userType === 'admin') {
         sessions = await session.findAllSessionsByAdminGroup(userGroup);
     } else if (userType === 'student') {
         sessions = await session.findAllSessionsByStudentGroup(userGroup, userId);
     }
+    logger.info(`${requester} Sessions fetched, count: ${sessions.length}`);
     return res.status(200).json({
         status: "success",
         results: sessions.length,
@@ -136,15 +145,18 @@ const getAllSessions = asyncWrapper(async (req, res, next) => {
 
 const getActiveSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
+    logger.debug(`[admin : ${req.admin.email}] Fetching active session for group: ${adminGroup}`);
     const activeSession = await session.getActiveSessionByGroup(adminGroup);
 
     if (!activeSession) {
+        logger.info(`[admin : ${req.admin.email}] No active session found for group: ${adminGroup}`);
         return res.status(404).json({
             status: "error",
             message: "No active sessions were found",
         });
     }
 
+    logger.info(`[admin : ${req.admin.email}] Active session found: ${activeSession.sessionId}`);
     return res.status(200).json({
         status: "success",
         data: { activeSession },
@@ -153,11 +165,13 @@ const getActiveSession = asyncWrapper(async (req, res, next) => {
 
 const getLastCreatedSession = asyncWrapper(async (req, res, next) => {
     const adminGroup = req.admin.group;
-
+    logger.debug(`[admin : ${req.admin.email}] Fetching last created session for group: ${adminGroup}`);
     const lastSession = await session.getLastCreatedSessionByGroup(adminGroup);
     if (!lastSession) {
+        logger.info(`[admin : ${req.admin.email}] No sessions found for group: ${adminGroup}`);
         return next(new AppError("No sessions found for your group", httpStatus.Success));
     }
+    logger.info(`[admin : ${req.admin.email}] Last session found: ${lastSession.sessionId}`);
     return res.status(200).json({
         status: "success",
         data: { lastSession }

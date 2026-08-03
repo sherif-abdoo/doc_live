@@ -37,8 +37,11 @@ const adminProtect = async (req, res, next) => {
     if (!admin) {
       return next(new AppError('Admin not found', 401));
     }
+
     req.admin = decoded;
     logger.debug("admin protect finished") // attach payload
+    req.admin.email = admin.email
+    logger.debug("Admin email: ", admin.email)
     next();
   } catch (error) {
     return next(new AppError('Not authorized, token failed', 401));
@@ -78,6 +81,8 @@ const studentProtect = async (req, res, next) => {
       return next(new AppError('Your account has been banned. ', 401));
     }
     req.student = decoded; // attach payload
+    req.student.email = student.studentEmail
+    logger.debug("Student email: ", student.studentEmail)
     logger.debug("student protect finished")
     next();
   } catch (error) {
@@ -128,6 +133,8 @@ const protect = asyncWrapper(async (req, res, next) => {
     }
     req.user = decoded; // attach payload
     logger.debug("protect finished")
+    req.user.email = userType === 'admin' ? user.email : user.studentEmail
+    logger.debug("User email: ", req.user.email)
     next();
   } catch (error) {
     return next(new AppError('Not authorized, token failed', 401));

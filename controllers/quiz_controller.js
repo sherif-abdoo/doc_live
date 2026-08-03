@@ -23,8 +23,8 @@ const createQuiz = asyncWrapper(async (req, res) => {
     const publisher = req.admin.id;
     const nmark = parseFloat(mark);
     const ndurationInMin = parseInt(durationInMin);
-    logger.debug("publisher id:", publisher)
-    logger.info("Creating quiz with data:", { nmark, date, semester, ndurationInMin });
+    logger.debug(`[admin : ${req.admin.email}] publisher id: ${publisher}`);
+    logger.info(`[admin : ${req.admin.email}] Creating quiz: ${title}, mark: ${nmark}, semester: ${semester}, duration: ${ndurationInMin}min`);
     const newQuiz = await quiz.createQuiz(nmark, publisher, date, semester, ndurationInMin, topicId, title);
     return res.status(201).json({
         status: "success",
@@ -35,7 +35,8 @@ const createQuiz = asyncWrapper(async (req, res) => {
 
 const getAllQuizzes = asyncWrapper(async (req, res) => {
     const group = req.user.group;
-    logger.debug("Fetching quizzes for group:", group);
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Fetching all quizzes for group: ${group}`);
 
     // Get all quizzes based on group
     const quizzes = await quiz.getAllQuizzes();
@@ -44,7 +45,7 @@ const getAllQuizzes = asyncWrapper(async (req, res) => {
 
 
         for (const q of quizzes) {
-            logger.debug(`Checking submission for student ${req.user.id} and quiz ${q.quizId}`);
+            logger.debug(`${requester} Checking submission for studentId: ${req.user.id}, quizId: ${q.quizId}`);
             const submitted = await submission.getSubmissionForQuiz(req.user.id, q.quizId);
 
             // Convert to plain object and add submitted property
@@ -58,8 +59,7 @@ const getAllQuizzes = asyncWrapper(async (req, res) => {
 
     const data = req.user.type === "student" ? quizzesWithSubmission : quizzes;
 
-    logger.info("Quizzes fetched successfully for group:", group);
-    logger.info("Sending response with quizzes count:", quizzes.length);
+    logger.info(`${requester} Quizzes fetched, count: ${quizzes.length}`);
     return res.status(200).json({
         status: "success",
         results: quizzes.length,
@@ -149,7 +149,7 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
     const found = await student.findStudentById(studentId);
     const { quizId } = req.params;
     if (req.submitted === "false") {
-        logger.info("Creating new submission");
+        logger.info(`[student : ${req.student.email}] Creating new submission for quiz: ${quizId}`);
         const newSub = await quiz.createSubmission(quizId, studentId, found.assistantId, answers, found.semester);
 
         return res.status(200).json({
@@ -161,7 +161,7 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
         });
     }
     else {
-        logger.info("Updating existing submission");
+        logger.info(`[student : ${req.student.email}] Resubmitting quiz: ${quizId}`);
         const submission = await quiz.findSubmissionByQuizAndStudent(quizId, studentId);
         submission.answers = answers;
         submission.subDate = new Date();

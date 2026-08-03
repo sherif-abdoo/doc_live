@@ -34,7 +34,7 @@ const TARegister = asyncWrapper(async (req, res) => {
   const { email, name, password, phoneNumber, group } = req.body;
   const groupl = group.toLowerCase();
   await admin.create(email, name, password, phoneNumber, groupl);
-
+  logger.info(`[admin : ${req.admin?.email || 'system'}] New assistant registered: ${name}, ${email}`);
   return res.status(201).json({
     status: "success",
     data: { message: "Assistant created successfully" }
@@ -44,6 +44,7 @@ const TARegister = asyncWrapper(async (req, res) => {
 const getPendingCount = asyncWrapper(async (req, res) => {
   const TAGroup = req.admin.group;
   const students = await admin.findNotVerifiedStudentsByTaGroup(TAGroup);
+  logger.info(`[admin : ${req.admin.email}] Pending count for group ${TAGroup}: ${students.length}`);
   return res.status(200).json({
     status: "success",
     message: `Pending registration count`,
@@ -57,6 +58,7 @@ const getPendingCount = asyncWrapper(async (req, res) => {
 const showPendingRegistration = asyncWrapper(async (req, res) => {
   const TAGroup = req.admin.group;
   const students = await admin.findNotVerifiedStudentsByTaGroup(TAGroup);
+  logger.info(`[admin : ${req.admin.email}] Showing pending registrations for group: ${TAGroup}, count: ${students.length}`);
   return res.status(200).json({
     status: "success",
     message: `Pending registration from students`,
@@ -81,6 +83,7 @@ const verifyStudent = asyncWrapper(async (req, res) => {
   await student.save();
   await rejection.Destroy(student.studentEmail);
   await registration.registrationDestroy(student.studentEmail);
+  logger.info(`[admin : ${req.admin.email}] Student ${student.studentEmail} verified successfully`);
   return res.status(200).json({
     status: "success",
     message: `Student ${student.studentName} verified successfully`,
@@ -91,6 +94,7 @@ const verifyStudent = asyncWrapper(async (req, res) => {
 const showStudentInGroup = asyncWrapper(async (req, res) => {
   const TAGroup = req.admin.group;
   const students = await admin.findVerifiedStudentsByTaGroup(TAGroup);
+  logger.info(`[admin : ${req.admin.email}] Showing students in group: ${TAGroup}, count: ${students.length}`);
   return res.status(200).json({
     status: "success",
     message: `Students in group ${TAGroup}`,
@@ -111,6 +115,7 @@ const removeStudent = asyncWrapper(async (req, res) => {
   await registration.registrationDestroy(student.studentEmail);
   await rejection.Destroy(student.studentEmail);
   await student.destroy();
+  logger.info(`[admin : ${req.admin.email}] Student ${student.studentEmail} deleted successfully`);
   return res.status(200).json({
     status: "success",
     message: `Student ${student.studentName} deleted successfully`,
@@ -123,6 +128,7 @@ const banStudent = asyncWrapper(async (req, res) => {
   if (student.banned) {
     student.banned = false;
     await student.save();
+    logger.info(`[admin : ${req.admin.email}] Student ${student.studentEmail} unbanned successfully`);
     return res.status(200).json({
       status: "success",
       message: `Student ${student.studentName} unbanned successfully`,
@@ -131,6 +137,7 @@ const banStudent = asyncWrapper(async (req, res) => {
   } else {
     student.banned = true;
     await student.save();
+    logger.info(`[admin : ${req.admin.email}] Student ${student.studentEmail} banned successfully`);
     return res.status(200).json({
       status: "success",
       message: `Student ${student.studentName} banned successfully`,
@@ -144,19 +151,19 @@ const banStudent = asyncWrapper(async (req, res) => {
 const rejectStudent = asyncWrapper(async (req, res) => {
   const student = req.student; // must be set earlier by studentFound
   const adminId = req.admin.id;
-  logger.debug(adminId) // assuming adminId is available in req.admin
+  logger.debug(`[admin : ${req.admin.email}] Rejecting student: ${student.studentEmail}, adminId: ${adminId}`);
   await rejection.createRejection(student.studentEmail, adminId, student.semester);
   const rej = await registration.findRegistration(student.studentEmail);
   rej.rejectionCount += 1;
   await rej.save();
   const adminCount = await admin.Count(student.group);
-  logger.debug("adminCount : ", adminCount);
+  logger.debug(`[admin : ${req.admin.email}] Admin count for group ${student.group}: ${adminCount}`);
   if (rej.rejectionCount >= adminCount) {
     await registration.registrationDestroy(student.studentEmail);
     await student.destroy();
     await rejection.Destroy(student.studentEmail);
   }
-  logger.info(`student ${student} rejected by admin ${admin}`)
+  logger.info(`[admin : ${req.admin.email}] Student ${student.studentEmail} rejected successfully`);
   return res.status(200).json({
     status: "success",
     message: `Student ${student.studentName} rejected successfully`,
@@ -179,7 +186,7 @@ const showMyProfile = asyncWrapper(async (req, res) => {
   if (adminId == 1) {
     admins = await admin.getAllAdmins();
   }
-  logger.info(`admin profile for ${adminId} fetched`)
+  logger.info(`[admin : ${req.admin.email}] Profile fetched for adminId: ${adminId}`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -197,6 +204,7 @@ const showMyProfile = asyncWrapper(async (req, res) => {
 
 const showStudentProfile = asyncWrapper(async (req, res) => {
   const studentProfile = req.student; // must be set earlier by studentFound
+
   return res.status(200).json({
     status: "success",
     data: {
@@ -216,8 +224,8 @@ const showStudentProfile = asyncWrapper(async (req, res) => {
 
 const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
   const adminId = req.admin.id;
+  logger.debug(`[admin : ${req.admin.email}] Fetching unmarked submissions, group: ${req.admin.group}`);
 
-  // 🔒 Safely define associations only once (without editing model files)
   if (!Submission.associations.student) {
     Submission.belongsTo(Student, { foreignKey: 'studentId', as: 'student' });
   }
@@ -234,86 +242,35 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
     Quiz.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
   }
 
-  // 🎯 "Unmarked" = no score yet (mirrors showMarkedSubmissions, which
-  // treats score IS NOT NULL as marked). A submission is marked once it
-  // has a score, regardless of whether a marked PDF was uploaded.
-  const unmarkedCondition = {
-    score: null
-  };
+  const unmarkedCondition = { score: null };
+  const baseWhere = adminId === 1 ? unmarkedCondition : unmarkedCondition;
+  const studentGroupFilter = adminId === 1 ? {} : { group: req.admin.group };
 
-  // Build base where clause
-  const baseWhere = adminId === 1
-    ? unmarkedCondition
-    : unmarkedCondition;
-
-  const studentGroupFilter = adminId === 1
-    ? {}
-    : { group: req.admin.group };
-
-  // 🔍 Fetch unmarked assignment submissions
   const assignmentSubs = await Submission.findAll({
     where: { ...baseWhere, type: 'assignment' },
     include: [
-      {
-        model: Student,
-        as: 'student',
-        attributes: ['studentName', 'group'],
-        where: studentGroupFilter,
-        required: true
-      },
-      {
-        model: Assignment,
-        as: 'assignment',
-        attributes: ['title'],
-        include: [
-          {
-            model: Topic,
-            as: 'topic',
-            attributes: ['subject']
-          }
-        ]
-      }
+      { model: Student, as: 'student', attributes: ['studentName', 'group'], where: studentGroupFilter, required: true },
+      { model: Assignment, as: 'assignment', attributes: ['title'], include: [{ model: Topic, as: 'topic', attributes: ['subject'] }] }
     ],
     order: [['subDate', 'DESC']]
   });
-  logger.debug("Assignment Subs: ", assignmentSubs.length);
+  logger.debug(`[admin : ${req.admin.email}] Assignment subs fetched: ${assignmentSubs.length}`);
 
-  // 🔍 Fetch unmarked quiz submissions
   const quizSubs = await Submission.findAll({
     where: { ...baseWhere, type: 'quiz' },
     include: [
-      {
-        model: Student,
-        as: 'student',
-        attributes: ['studentName', 'group'],
-        where: studentGroupFilter,
-        required: true
-      },
-      {
-        model: Quiz,
-        as: 'quiz',
-        attributes: ['title'],
-        include: [
-          {
-            model: Topic,
-            as: 'topic',
-            attributes: ['subject']
-          }
-        ]
-      }
+      { model: Student, as: 'student', attributes: ['studentName', 'group'], where: studentGroupFilter, required: true },
+      { model: Quiz, as: 'quiz', attributes: ['title'], include: [{ model: Topic, as: 'topic', attributes: ['subject'] }] }
     ],
     order: [['subDate', 'DESC']]
   });
-  logger.debug("Quiz Subs: ", quizSubs.length);
+  logger.debug(`[admin : ${req.admin.email}] Quiz subs fetched: ${quizSubs.length}`);
 
   const allSubmissions = [...assignmentSubs, ...quizSubs];
-  logger.debug("All Subs: ", allSubmissions.length);
+  logger.debug(`[admin : ${req.admin.email}] Total unmarked submissions: ${allSubmissions.length}`);
 
   if (allSubmissions.length === 0) {
-    return res.status(200).json({
-      status: 'success',
-      message: 'No unmarked submissions found'
-    });
+    return res.status(200).json({ status: 'success', message: 'No unmarked submissions found' });
   }
 
   const adminProfile = await admin.findAdminById(adminId);
@@ -321,21 +278,13 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
   const enrichedSubmissions = allSubmissions.map(sub => {
     let content = {};
     let subject = 'N/A';
-
     if (sub.type === 'assignment' && sub.assignment) {
-      content = {
-        assignmentId: sub.assId,
-        assignmentTitle: sub.assignment.title
-      };
+      content = { assignmentId: sub.assId, assignmentTitle: sub.assignment.title };
       subject = sub.assignment.topic?.subject || 'N/A';
     } else if (sub.type === 'quiz' && sub.quiz) {
-      content = {
-        quizId: sub.quizId,
-        quizTitle: sub.quiz.title
-      };
+      content = { quizId: sub.quizId, quizTitle: sub.quiz.title };
       subject = sub.quiz.topic?.subject || 'N/A';
     }
-
     return {
       id: sub.subId,
       studentId: sub.studentId,
@@ -348,23 +297,19 @@ const showUnmarkedSubmissions = asyncWrapper(async (req, res) => {
     };
   });
 
-  // Sort combined list by submission date (newest first)
   enrichedSubmissions.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-  logger.info(`unmarked subs fetched for ${adminProfile.name}`);
+  logger.info(`[admin : ${req.admin.email}] Unmarked submissions fetched for: ${adminProfile.name}, count: ${enrichedSubmissions.length}`);
   return res.status(200).json({
     status: 'success',
     message: `Unmarked submissions for admin ${adminProfile.name}`,
-    data: {
-      submissions: enrichedSubmissions
-    }
+    data: { submissions: enrichedSubmissions }
   });
-
 });
 
 
 const findSubmissionById = asyncWrapper(async (req, res) => {
   const found = req.found;
-  logger.info(`found submission ${found.subId} by id`)
+  logger.debug(`[admin : ${req.admin.email}] Fetching submission by id: ${found.subId}`);
   return res.status(200).json({
     status: "success",
     data: { found }
@@ -374,15 +319,14 @@ const findSubmissionById = asyncWrapper(async (req, res) => {
 const showAllSubmissions = asyncWrapper(async (req, res) => {
   const assistantId = req.admin.id;
   const adminProfile = await admin.findAdminById(assistantId);
-  logger.debug(assistantId);
   const submissions = (assistantId === 1
     ? await admin.getAllSubmissions()
     : await admin.getAllSubmissionsById(assistantId));
 
   if (!submissions || submissions.length === 0) {
-    return res.status(200).json({ message: "No unmarked submissions found" });
+    return res.status(200).json({ message: "No submissions found" });
   }
-  logger.info(`subs fetched for ${adminProfile.name}`)
+  logger.info(`[admin : ${req.admin.email}] All submissions fetched for: ${adminProfile.name}, count: ${submissions.length}`);
   return res.status(200).json({
     status: "success",
     message: `Unmarked submissions for admin ${adminProfile.name}`,
@@ -484,7 +428,7 @@ const showMarkedSubmissions = asyncWrapper(async (req, res) => {
   });
 
   enriched.sort((a, b) => new Date(b.markedAt) - new Date(a.markedAt));
-
+  logger.info(`[admin : ${req.admin.email}] Marked submissions fetched, count: ${enriched.length}`);
   return res.status(200).json({
     status: 'success',
     message: `Marked submissions for admin ${adminProfile.name}`,
@@ -499,8 +443,7 @@ const markSubmission = asyncWrapper(async (req, res) => {
     studentSub.totalScore = parseInt(studentSub.totalScore) - parseInt(found.score);
 
     await studentSub.save();
-    logger.info("old score removed")
-    logger.info(studentSub.totalScore)
+    logger.info(`[admin : ${req.admin.email}] Old score removed for submission: ${found.subId}, student total: ${studentSub.totalScore}`);
   }
   const { marked, score } = req.body
   // Use a null/empty check (not truthiness) so a valid score of 0 is stored,
@@ -512,8 +455,7 @@ const markSubmission = asyncWrapper(async (req, res) => {
   found.marked = marked ? marked : found.marked;
   found.markedAt = new Date();
   studentSub.totalScore = parseInt(found.score) + parseInt(studentSub.totalScore);
-  logger.info("new score added")
-  logger.info(studentSub.totalScore)
+  logger.info(`[admin : ${req.admin.email}] Submission ${found.subId} marked, score: ${found.score}, student total: ${studentSub.totalScore}`);
   await studentSub.save();
   await found.save();
   return res.status(200).json({

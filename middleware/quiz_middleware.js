@@ -14,50 +14,45 @@ const logger = require('../utils/logger')
 
 const checkFields = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-    const { mark, date, semester, durationInMin, } = req.body;
+    const { mark, date, semester, durationInMin } = req.body;
     const nmark = parseFloat(mark);
     const ndurationInMin = parseInt(durationInMin);
+    logger.debug(`[admin : ${req.admin.email}] Validating quiz fields`);
+
     if (nmark == null || date == null || semester == null || ndurationInMin == null) {
+        logger.info(`[admin : ${req.admin.email}] Missing required fields`);
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
     }
-    logger.debug("chack 1 done, all fields present")
     if (typeof nmark !== 'number' || nmark < 0) {
+        logger.info(`[admin : ${req.admin.email}] Invalid mark: ${mark}`);
         return next(new AppError("Mark must be a non-negative number", httpStatus.BAD_REQUEST));
     }
-    logger.debug("chack 2 done, mark valid")
-    // quizPdf must be a valid URL ending with .pdf
-    // const pdfRegex = /^https?:\/\/.+\.pdf$/i;
-    // if (typeof quizPdf !== 'string' || !pdfRegex.test(quizPdf.trim())) {
-    //     return next(new AppError("Quiz PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
-    // }
-    // logger.debug("chack 3 done, pdf valid")
-
-    // allow any date format that JS Date can parse
     const parsedDate = new Date(date);
     if (parsedDate.toString() === "Invalid Date") {
+        logger.info(`[admin : ${req.admin.email}] Invalid date: ${date}`);
         return next(new AppError("Invalid date format", httpStatus.BAD_REQUEST));
     }
-    logger.debug("chack 4 done, date valid")
-
     if (typeof semester !== 'string' || semester.trim() === '') {
+        logger.info(`[admin : ${req.admin.email}] Invalid semester: ${semester}`);
         return next(new AppError("Semester must be a non-empty string", httpStatus.BAD_REQUEST));
     }
-    logger.debug("chack 5 done, semester valid")
-
     if (typeof ndurationInMin !== 'number' || ndurationInMin <= 0) {
+        logger.info(`[admin : ${req.admin.email}] Invalid duration: ${durationInMin}`);
         return next(new AppError("Duration must be a positive number", httpStatus.BAD_REQUEST));
     }
-    logger.debug("chack 6 done, duration valid")
+    logger.debug(`[admin : ${req.admin.email}] All quiz fields valid`);
     next();
 });
 
 const getGroup = asyncWrapper(async (req, res, next) => {
-    const group = req.user.group
+    const group = req.user.group;
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
     if (!group) {
+        logger.info(`${requester} Group not found`);
         return next(new AppError("Group not found", httpStatus.NOT_FOUND));
     }
     req.group = group;
-    logger.debug("group sent :", group)
+    logger.debug(`${requester} Group resolved: ${group}`);
     next();
 });
 
@@ -66,11 +61,14 @@ const getGroup = asyncWrapper(async (req, res, next) => {
 const quizExists = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { quizId } = req.params;
+    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    logger.debug(`${requester} Looking up quiz: ${quizId}`);
     const quizData = await quiz.getQuizById(quizId);
     if (!quizData) {
+        logger.info(`${requester} Quiz not found: ${quizId}`);
         return next(new AppError("Quiz not found", httpStatus.NOT_FOUND));
     }
-    logger.debug("Quiz found:", quizData);
+    logger.debug(`${requester} Quiz found: ${quizId}`);
     req.quizData = quizData;
     next();
 });
@@ -78,17 +76,17 @@ const quizExists = asyncWrapper(async (req, res, next) => {
 const canAccessQuiz = asyncWrapper(async (req, res, next) => {
     const userGroup = req.admin.group;
     const quizData = req.quizData;
+    logger.debug(`[admin : ${req.admin.email}] Checking access permission for quiz: ${quizData.quizId}`);
     const publisher = await admin.findAdminById(quizData.publisher);
     if (!publisher) {
-        logger.debug("publisher not found")
+        logger.info(`[admin : ${req.admin.email}] Publisher not found for quiz: ${quizData.quizId}`);
         return next(new AppError("Publisher not found", httpStatus.NOT_FOUND));
     }
-
     if (publisher.group !== 'all' && publisher.group !== userGroup && userGroup !== 'all') {
-        logger.debug("User does not have permission to access the quiz");
+        logger.info(`[admin : ${req.admin.email}] Permission denied - publisher group: ${publisher.group}, admin group: ${userGroup}`);
         return next(new AppError("You do not have permission to access this quiz", httpStatus.FORBIDDEN));
     }
-    logger.debug("User has permission to access the quiz");
+    logger.debug(`[admin : ${req.admin.email}] Access permission granted for quiz: ${quizData.quizId}`);
     next();
 });
 
@@ -97,35 +95,34 @@ const canAccessQuiz = asyncWrapper(async (req, res, next) => {
 const canSeeQuiz = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group;
     const quizData = req.quizData;
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Checking view permission for quiz: ${quizData.quizId}`);
     const publisher = await admin.findAdminById(quizData.publisher);
     if (!publisher) {
-        logger.debug('publisher of the quiz is not found')
+        logger.info(`${requester} Publisher not found for quiz: ${quizData.quizId}`);
         return next(new AppError("Publisher not found", httpStatus.NOT_FOUND));
     }
-
     if (publisher.group !== 'all' && publisher.group !== userGroup && userGroup !== 'all') {
-        logger.debug("User does not have permission to view the quiz");
+        logger.info(`${requester} View permission denied - publisher group: ${publisher.group}, user group: ${userGroup}`);
         return next(new AppError("You do not have permission to view this quiz", httpStatus.FORBIDDEN));
     }
-    logger.debug("User has permission to view the quiz");
+    logger.debug(`${requester} View permission granted for quiz: ${quizData.quizId}`);
     next();
 });
 
 const activeQuizExists = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group;
-
-    // Try to fetch quiz for user's group
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Checking for active quiz in group: ${userGroup}`);
     let activeQuiz = await getCache(`activeQuiz:${userGroup}`);
-
-    // If not found, try the "all" group quiz
     if (!activeQuiz) {
         activeQuiz = await getCache("activeQuiz:all");
     }
-
     if (!activeQuiz) {
+        logger.info(`${requester} No active quiz found for group: ${userGroup}`);
         return next(new AppError("No active quiz found", httpStatus.NOT_FOUND));
     }
-    logger.debug("active quiz exists")
+    logger.debug(`${requester} Active quiz found: ${activeQuiz.quizId}`);
     req.quizData = activeQuiz;
     next();
 });
@@ -133,11 +130,14 @@ const activeQuizExists = asyncWrapper(async (req, res, next) => {
 const submittedBefore = asyncWrapper(async (req, res, next) => {
     const subQuiz = req.quizData;
     const studentId = req.user.id;
+    logger.debug(`[student : ${req.user.email}] Checking prior submission for quiz: ${subQuiz.quizId}`);
     const submission = await quiz.findSubmissionByQuizAndStudent(subQuiz.quizId, studentId);
     req.submitted = "false";
     if (submission) {
         req.submitted = "true";
-        logger.debug("resubmitting quiz");
+        logger.debug(`[student : ${req.user.email}] Already submitted quiz: ${subQuiz.quizId}`);
+    } else {
+        logger.debug(`[student : ${req.user.email}] No prior submission for quiz: ${subQuiz.quizId}`);
     }
     next();
 });
@@ -145,16 +145,14 @@ const submittedBefore = asyncWrapper(async (req, res, next) => {
 const canAccessActiveQuiz = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group;
     const activeQuiz = req.quizData;
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Checking access to active quiz: ${activeQuiz.quizId}`);
     const publisher = await admin.findAdminById(activeQuiz.publisher);
-
-    // publisher group is already baked into how the quiz was cached
-    // so here you just check group compatibility
     if (userGroup !== 'all' && publisher.group !== userGroup && publisher.group !== 'all') {
-        logger.debug("user cannot acess active quiz")
+        logger.info(`${requester} Access denied to active quiz - publisher group: ${publisher.group}, user group: ${userGroup}`);
         return next(new AppError("You do not have permission to access this active quiz", httpStatus.FORBIDDEN));
     }
-
-    logger.debug(`✅ User from group ${userGroup} can access quiz for group ${publisher.group}`);
+    logger.debug(`${requester} Access granted to active quiz: ${activeQuiz.quizId}`);
     next();
 });
 
@@ -177,13 +175,15 @@ const verifySubmissionPDF = asyncWrapper(async (req, res, next) => {
 
 const verifySubmissionTiming = asyncWrapper(async (req, res, next) => {
     const activeQuiz = req.quizData;
-
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Verifying submission timing for quiz: ${activeQuiz.quizId}`);
     let deadline = new Date(activeQuiz.date);
-    deadline += activeQuiz.durationInMin * 60000
+    deadline += activeQuiz.durationInMin * 60000;
     if (new Date() > deadline) {
+        logger.info(`${requester} Submission time expired for quiz: ${activeQuiz.quizId}`);
         return next(new AppError("Quiz submission time has expired", httpStatus.BAD_REQUEST));
     }
-    logger.debug("Quiz submission is within the allowed time frame");
+    logger.debug(`${requester} Submission timing valid for quiz: ${activeQuiz.quizId}`);
     next();
 });
 

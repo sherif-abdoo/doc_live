@@ -23,14 +23,14 @@ const createMaterial = asyncWrapper(async (req, res, next) => {
     const { title, description, document, link, topicId } = req.body;
     const publisher = req.admin.id;
     const uploadDate = new Date();
+    logger.debug(`[admin : ${req.admin.email}] Creating material: ${title}, topicId: ${topicId}`);
     const foundTopic = await topic.getTopicById(topicId);
-    logger.info("Creating material with data:", { title, description, document, link, topicId, publisher, uploadDate });
     const newMaterial = await material.createMaterial(title, description, document, link, topicId, publisher, uploadDate);
-    // ✅ Create a new response object that includes subject
     const materialWithSubject = {
-        ...newMaterial.toJSON ? newMaterial.toJSON() : newMaterial, // Handle ORM instances
+        ...newMaterial.toJSON ? newMaterial.toJSON() : newMaterial,
         subject: foundTopic.subject
     };
+    logger.info(`[admin : ${req.admin.email}] Material created successfully, id: ${newMaterial.materialId || newMaterial.id}`);
     return res.status(201).json({
         status: "success",
         message: "Material created successfully",
@@ -40,32 +40,33 @@ const createMaterial = asyncWrapper(async (req, res, next) => {
 
 const getAllMaterials = asyncWrapper(async (req, res, next) => {
     const group = req.user.group;
+    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    logger.debug(`${requester} Fetching all materials for group: ${group}`);
     const materials = (group === 'all'
         ? await material.getAllMaterialsAllGroups()
         : await material.getAllMaterialsByGroup(group));
 
     const materialsWithType = materials.map(mat => {
-        // Convert Sequelize instance to plain object
         const materialData = mat.toJSON ? mat.toJSON() : JSON.parse(JSON.stringify(mat));
         const documentUrl = materialData.document || '';
-
         const last4Chars = documentUrl.slice(-4).toLowerCase();
         const materialType = last4Chars === '.pdf' ? 'pdf' : 'url';
         materialData.type = materialType;
-
         return materialData;
     });
 
+    logger.info(`${requester} Materials fetched, count: ${materialsWithType.length}`);
     return res.status(200).json({
         status: "success",
         results: materialsWithType.length,
         data: { materials: materialsWithType }
     });
-
 });
 
 const getMaterialById = asyncWrapper(async (req, res, next) => {
     const found = req.found;
+    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    logger.debug(`${requester} Fetching material by id: ${found.materialId || found.id}`);
     return res.status(200).json({
         status: "success",
         data: { found }
@@ -75,10 +76,14 @@ const getMaterialById = asyncWrapper(async (req, res, next) => {
 const getMaterialByTopicId = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { topicId } = req.params;
+    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    logger.debug(`${requester} Fetching materials for topicId: ${topicId}`);
     const materials = await material.getMaterialsByTopicId(topicId);
     if (materials.length === 0) {
+        logger.info(`${requester} No materials found for topicId: ${topicId}`);
         return next(new AppError(`No materials found for topicId ${topicId}`, httpStatus.NOT_FOUND));
     }
+    logger.info(`${requester} Materials fetched for topicId: ${topicId}, count: ${materials.length}`);
     return res.status(200).json({
         status: "success",
         results: materials.length,
@@ -91,10 +96,13 @@ const updateMaterial = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const materialId = req.params.id;
     const updateData = req.body;
+    logger.debug(`[admin : ${req.admin.email}] Updating material: ${materialId}`);
     const updatedRows = await material.updateMaterial(materialId, updateData);
     if (updatedRows === 0) {
+        logger.info(`[admin : ${req.admin.email}] No changes made for material: ${materialId}`);
         return next(new AppError(`Material with id ${materialId} not found or no changes made`, httpStatus.NOT_FOUND));
     }
+    logger.info(`[admin : ${req.admin.email}] Material updated successfully: ${materialId}`);
     return res.status(200).json({
         status: "success",
         message: "Material updated successfully"
@@ -104,10 +112,13 @@ const updateMaterial = asyncWrapper(async (req, res, next) => {
 const deleteMaterial = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const materialId = req.params.id;
+    logger.debug(`[admin : ${req.admin.email}] Deleting material: ${materialId}`);
     const deletedRows = await material.deleteMaterial(materialId);
     if (deletedRows === 0) {
+        logger.info(`[admin : ${req.admin.email}] Material not found: ${materialId}`);
         return next(new AppError(`Material with id ${materialId} not found`, httpStatus.NOT_FOUND));
     }
+    logger.info(`[admin : ${req.admin.email}] Material deleted successfully: ${materialId}`);
     return res.status(200).json({
         status: "success",
         message: "Material deleted successfully"

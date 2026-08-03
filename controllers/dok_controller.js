@@ -89,7 +89,7 @@ const showPendingRegistration = asyncWrapper(async (req, res) => {
 const removeAssistant = asyncWrapper(async (req, res) => {
     sanitizeInput(req.params);
     const { email } = req.params;
-    const deleted = await admins.removeAssistant(email);
+    await admins.removeAssistant(email);
     return res.status(200).json({
         status: "success",
         message: `Assistant with email ${email} removed successfully`
@@ -165,28 +165,28 @@ const deleteSemester = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const { semester } = req.body;
     await materialDl.deleteMaterialBySemester(semester);
-    logger.debug("Deleted materials for semester:", semester);
+    logger.debug("[DOK] Deleted materials for semester:", semester);
     await sessionDl.deleteAttendanceBySemester(semester);
-    logger.debug("Deleted attendance for semester:", semester);
+    logger.debug("[DOK] Deleted attendance for semester:", semester);
     await sessionDl.deleteSessionsBySemester(semester);
-    logger.debug("Deleted sessions for semester:", semester);
+    logger.debug("[DOK] Deleted sessions for semester:", semester);
     await submissionDl.deleteSubmissionBySemester(semester);
-    logger.debug("Deleted submissions for semester:", semester);
+    logger.debug("[DOK] Deleted submissions for semester:", semester);
     await assignmentDl.deleteAssignmentBySemester(semester);
-    logger.debug("Deleted assignments for semester:", semester);
+    logger.debug("[DOK] Deleted assignments for semester:", semester);
     await quizDl.deleteQuizBySemester(semester);
-    logger.debug("Deleted quizzes for semester:", semester);
+    logger.debug("[DOK] Deleted quizzes for semester:", semester);
     await topicDl.deleteTopicBySemester(semester);
-    logger.debug("Deleted topics for semester:", semester);
+    logger.debug("[DOK] Deleted topics for semester:", semester);
     await studentDl.deleteRejectionsBySemester(semester);
-    logger.debug("Deleted rejections for semester:", semester);
+    logger.debug("[DOK] Deleted rejections for semester:", semester);
     await studentDl.deleteRegistrationBySemester(semester);
-    logger.debug("Deleted registrations for semester:", semester);
+    logger.debug("[DOK] Deleted registrations for semester:", semester);
     await otpDl.deleteOtpBySemester(semester);
-    logger.debug("Deleted OTPs for semester:", semester);
+    logger.debug("[DOK] Deleted OTPs for semester:", semester);
     await studentDl.deleteStudentBySemester(semester);
-    logger.debug("Deleted students for semester:", semester);
-    logger.info(`all data for session ${semester} in removed`)
+    logger.debug("[DOK] Deleted students for semester:", semester);
+    logger.info(`[DOK] all data for session ${semester} in removed`)
     return res.status(200).json({
         status: "success",
         message: `All data for semester ${semester} deleted successfully`
