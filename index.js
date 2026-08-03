@@ -54,17 +54,17 @@ const topicRoutes = require('./routes/topic_routes');
 const leaderBoard = require('./routes/leader_board');
 const materialRoutes = require('./routes/material_routes');
 
-app.use('/admin', adminRoutes);
-app.use('/dok', dokRoutes);
-app.use('/student', studentRoutes);
-app.use('/login', logInRoute);
-app.use('/feed', feedRoute);
-app.use('/quiz', quizRoutes);
-app.use('/assignment', assignmentRoutes);
-app.use('/material', materialRoutes);
-app.use('/session', sessionRoutes);
-app.use('/topic', topicRoutes);
-app.use('/leaderBoard', leaderBoard);
+app.use('api/v2/admin', adminRoutes);
+app.use('api/v2/dok', dokRoutes);
+app.use('api/v2/student', studentRoutes);
+app.use('api/v2/login', logInRoute);
+app.use('api/v2/feed', feedRoute);
+app.use('api/v2/quiz', quizRoutes);
+app.use('api/v2/assignment', assignmentRoutes);
+app.use('api/v2/material', materialRoutes);
+app.use('api/v2/session', sessionRoutes);
+app.use('api/v2/topic', topicRoutes);
+app.use('api/v2/leaderBoard', leaderBoard);
 
 // -------------------- Error handler (moved UP) --------------------
 app.use((error, req, res, next) => {
