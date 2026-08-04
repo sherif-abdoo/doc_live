@@ -12,7 +12,7 @@ router.route('/signUp')
     .post(DOK.DOK_signUp);
 
 router.route('/rejectAssistant/:email')
-    .delete(auth.adminProtect, dokmiddleware.checkRole,dokmiddleware.findAdmin ,DOK.rejectAssistant);
+    .delete(auth.adminProtect, dokmiddleware.checkRole, dokmiddleware.findAdmin, DOK.rejectAssistant);
 
 router.route('/acceptAssistant/:email')
     .patch(auth.adminProtect, dokmiddleware.checkRole, dokmiddleware.findAdmin, DOK.acceptAssistant);
@@ -24,7 +24,7 @@ router.route('/removeAssistant/:email')
     .delete(auth.adminProtect, dokmiddleware.checkRole, dokmiddleware.findAdmin, DOK.removeAssistant);
 
 router.route('/checkAssistantInGroup/:group')
-    .get(auth.adminProtect, dokmiddleware.checkRole, DOK.checkAssistantGroup);    
+    .get(auth.adminProtect, dokmiddleware.checkRole, DOK.checkAssistantGroup);
 
 router.route('/assignGroupToAssistant/:id')
     .patch(auth.adminProtect, dokmiddleware.checkRole, DOK.assignGroupToAssistant);
@@ -32,14 +32,17 @@ router.route('/assignGroupToAssistant/:id')
 router.route('/createNewGroup')
     .post(auth.adminProtect, dokmiddleware.checkRole, DOK.createNewGroup);
 
-router.route('/deleteGroup/:groupName')
+router.route('/updateGroup')
+    .patch(auth.adminProtect, dokmiddleware.checkRole, DOK.editGroup);
+
+router.route('/deleteGroup')
     .delete(auth.adminProtect, dokmiddleware.checkRole, DOK.deleteGroup);
 
 router.route('/deleteAllAssignmentsSubmission')
-    .delete(auth.adminProtect, dokmiddleware.checkRole , assignControllers.deleteAllAssignmentSubmissionsFunc);
+    .delete(auth.adminProtect, dokmiddleware.checkRole, assignControllers.deleteAllAssignmentSubmissionsFunc);
 
 router.route('/deleteAllQuizSubmission')
-    .delete(auth.adminProtect, dokmiddleware.checkRole , quizControllers.deleteAllQuizSubmissionsFunc);        
+    .delete(auth.adminProtect, dokmiddleware.checkRole, quizControllers.deleteAllQuizSubmissionsFunc);
 
 router.route('/deleteBySemester')
     .delete(auth.adminProtect, dokmiddleware.checkRole, topicMiddleWare.checkSemester, DOK.deleteSemester);

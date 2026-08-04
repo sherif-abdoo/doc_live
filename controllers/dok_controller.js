@@ -21,6 +21,7 @@ const quizDl = require('../data_link/quiz_data_link.js');
 const otpDl = require('../data_link/forget_password.js');
 const asyncWrapper = require('../middleware/asyncwrapper');
 const Group = require('../models/group_model.js');
+const { changeGroupName, deleteGroupName } = require('../data_link/group_data_link');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const logger = require('../utils/logger');
 
@@ -118,7 +119,7 @@ const assignGroupToAssistant = asyncWrapper(async (req, res) => {
     const { group } = req.body;
     const assistant = await admins.findAdminById(id);
     if (!assistant) {
-        return next(new AppError('Assistant not found', 404));
+        return res.status(404).json({ status: "Error", data: { message: "Assistant not found" } });
     }
     assistant.group = group;
     await assistant.save();
@@ -134,7 +135,8 @@ const createNewGroup = asyncWrapper(async (req, res) => {
     const groupl = groupName.toLowerCase();
     const existingGroup = await Group.findOne({ where: { groupName: groupl } });
     if (existingGroup) {
-        return next(new AppError('Group name already exists', 400));
+        logger.info(`[DOK] Group ${groupName} already exists, cannot create new one with same name`)
+        return res.status(400).json({ status: "Error", data: { message: "Group name already exists" } });
     }
     const newGroup = await Group.create({ groupName: groupl });
     return res.status(201).json({
@@ -147,14 +149,38 @@ const createNewGroup = asyncWrapper(async (req, res) => {
     });
 });
 
+const editGroup = asyncWrapper(async (req, res) => {
+    const { groupName, newName } = req.body;
+    const groupl = groupName.toLowerCase();
+    const existingGroup = await Group.findOne({ where: { groupName: groupl } });
+    if (!existingGroup) {
+        logger.info(`[DOK] Group ${groupName} does not exist, cannot change name`)
+        return res.status(400).json({ status: "Error", data: { message: "Group name does not exist" } });
+    }
+    const newl = newName.toLowerCase()
+    const newG = await Group.findOne({ where: { groupName: newl } })
+    if (newG) {
+        logger.info(`[DOK] Attempted to change group name to a name that already exists: ${newName}`)
+        return res.status(400).json({ status: "Error", data: { message: "New group name already exists" } });
+    }
+    await changeGroupName(groupName, newName)
+    logger.info(`[DOK] group name changed from ${groupName} to ${newName}`)
+    return res.status(200).json({
+        status: "success",
+        message: `group ${groupName} changed to ${newName} `
+    })
+})
+
 const deleteGroup = asyncWrapper(async (req, res) => {
     const { groupName } = req.body;
     const groupl = groupName.toLowerCase();
     const existingGroup = await Group.findOne({ where: { groupName: groupl } });
     if (!existingGroup) {
-        return next(new AppError('Group name does not exists', 400));
+        logger.info(`[DOK] Group ${groupName} does not exist, cannot delete`)
+        return res.status(400).json({ status: "Error", data: { message: "Group name does not exist" } });
     }
-    await existingGroup.destroy();
+    await deleteGroupName(groupName)
+    logger.info(`[DOK] Group ${groupName} deleted successfully`)
     return res.status(200).json({
         status: "success",
         message: `Group ${groupName} deleted successfully`
@@ -202,6 +228,7 @@ module.exports = {
     checkAssistantGroup,
     assignGroupToAssistant,
     createNewGroup,
+    editGroup,
     deleteGroup,
     deleteSemester
 }
