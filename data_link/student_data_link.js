@@ -172,6 +172,30 @@ function resetTotalScore() {
   return Student.update({ totalScore: 0 }, { where: {} });
 }
 
+async function getStudentForDok() {
+  const students = await Student.findAll({
+    where: { verified: true },
+    attributes: ['studentId', 'studentName', 'studentEmail', 'group', 'assistantId']
+  });
+
+  return Promise.all(students.map(async (s) => {
+    const ta = s.assistantId ? await Admin.findOne({
+      where: { adminId: s.assistantId },
+      attributes: ['adminId', 'name', 'email']
+    }) : null;
+
+    return {
+      id: s.studentId,
+      name: s.studentName,
+      email: s.studentEmail,
+      score: s.totalScore,
+      group: s.group,
+      taId: ta?.adminId || null,
+      taName: ta?.name || null,
+      taEmail: ta?.email || null,
+    };
+  }));
+}
 
 module.exports = {
   findStudentByEmail,
@@ -192,5 +216,6 @@ module.exports = {
   deleteRegistrationBySemester,
   deleteRejectionsBySemester,
   deleteStudentBySemester,
-  findStudentByPhoneNumber
+  findStudentByPhoneNumber,
+  getStudentForDok
 }

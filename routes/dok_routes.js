@@ -50,4 +50,7 @@ router.route('/deleteBySemester')
 router.route('/resetScore')
     .patch(auth.adminProtect, dokmiddleware.checkRole, DOK.resetScore);
 
+router.route('/studentsDashboard')
+    .get(auth.adminProtect, dokmiddleware.checkRole, DOK.DOKStudentsDashboard)
+
 module.exports = router;

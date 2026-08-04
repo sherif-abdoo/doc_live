@@ -228,6 +228,18 @@ const deleteSemester = asyncWrapper(async (req, res) => {
     });
 });
 
+const DOKStudentsDashboard = asyncWrapper(async (req, res) => {
+    const students = await studentDl.getStudentForDok()
+    return res.status(200).json({
+        status: "success",
+        data: {
+            totalStudents: students.length,
+            totalGroups: [...new Set(students.map(student => student.group))].length,
+            students
+        }
+    });
+});
+
 module.exports = {
     DOK_signUp,
     rejectAssistant,
@@ -240,5 +252,6 @@ module.exports = {
     editGroup,
     deleteGroup,
     deleteSemester,
-    resetScore
+    resetScore,
+    DOKStudentsDashboard
 }
