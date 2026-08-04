@@ -175,7 +175,7 @@ function resetTotalScore() {
 async function getAVGScores(group) {
   const result = await Student.findOne({
     attributes: [[sequelize.fn('AVG', sequelize.col('totalScore')), 'avgScore']],
-    where: { group, verified: true },
+    where: { group, verified: true, banned: false },
     raw: true
   });
   return result ? parseFloat(parseFloat(result.avgScore || 0).toFixed(2)) : 0;
@@ -186,6 +186,7 @@ function findStudentsNeedAttention(avg, group) {
     where: {
       group,
       verified: true,
+      banned: false,
       totalScore: { [Op.lt]: avg }
     },
     attributes: ['studentId', 'studentName', 'studentEmail', 'totalScore'],
@@ -214,6 +215,7 @@ async function getStudentForDok() {
       taId: ta?.adminId || null,
       taName: ta?.name || null,
       taEmail: ta?.email || null,
+      banned: s.banned
     };
   }));
 }
