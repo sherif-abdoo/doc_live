@@ -187,6 +187,15 @@ const deleteGroup = asyncWrapper(async (req, res) => {
     });
 })
 
+const resetScore = asyncWrapper(async (req, res) => {
+    await studentDl.resetTotalScore();
+    logger.info("[DOK] Total score reset to zero for all students");
+    return res.status(200).json({
+        status: "success",
+        message: "Total score reset to zero for all students"
+    });
+})
+
 const deleteSemester = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const { semester } = req.body;
@@ -230,5 +239,6 @@ module.exports = {
     createNewGroup,
     editGroup,
     deleteGroup,
-    deleteSemester
+    deleteSemester,
+    resetScore
 }

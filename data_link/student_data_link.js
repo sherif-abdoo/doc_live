@@ -168,9 +168,14 @@ function deleteStudentBySemester(semester) {
   });
 }
 
+function resetTotalScore() {
+  return Student.update({ totalScore: 0 }, { where: {} });
+}
+
 
 module.exports = {
   findStudentByEmail,
+  resetTotalScore,
   findAllStudentsForProfile,
   createStudent,
   registerStudent,

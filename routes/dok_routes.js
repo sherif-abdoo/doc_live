@@ -47,4 +47,7 @@ router.route('/deleteAllQuizSubmission')
 router.route('/deleteBySemester')
     .delete(auth.adminProtect, dokmiddleware.checkRole, topicMiddleWare.checkSemester, DOK.deleteSemester);
 
+router.route('/resetScore')
+    .patch(auth.adminProtect, dokmiddleware.checkRole, DOK.resetScore);
+
 module.exports = router;
