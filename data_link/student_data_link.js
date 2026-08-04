@@ -197,7 +197,7 @@ function findStudentsNeedAttention(avg, group) {
 async function getStudentForDok() {
   const students = await Student.findAll({
     where: { verified: true },
-    attributes: ['studentId', 'studentName', 'studentEmail', 'group', 'assistantId']
+    attributes: ['studentId', 'studentName', 'studentEmail', 'group', 'assistantId', 'banned']
   });
 
   return Promise.all(students.map(async (s) => {
