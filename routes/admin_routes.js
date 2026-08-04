@@ -66,4 +66,7 @@ router.route('/createReport/:topicId')
 router.route('/makeReportForStudent/:studentId{/:topicId}')
     .get(auth.adminProtect, adminMiddleWare.checkAuthurityByID, getMyWeeklyReport);
 
+router.route('/needsAttention')
+    .get(auth.adminProtect, adminControllers.needAttention)
+
 module.exports = router;

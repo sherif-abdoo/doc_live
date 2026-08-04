@@ -464,6 +464,20 @@ const markSubmission = asyncWrapper(async (req, res) => {
   })
 })
 
+const needAttention = asyncWrapper(async (req, res) => {
+  const avg = await student.getAVGScores(req.admin.group)
+  const studNeedAttention = await student.findStudentsNeedAttention(avg, req.admin.group)
+  logger.info(`[admin : ${req.admin.email}] Fetching submissions need attention`);
+  return res.status(200).json({
+    status: "success",
+    data: {
+      averageScore: avg,
+      students: studNeedAttention
+    }
+  })
+})
+
+
 module.exports = {
   TARegister,
   showPendingRegistration,
@@ -479,6 +493,7 @@ module.exports = {
   findSubmissionById,
   showAllSubmissions,
   markSubmission,
-  showMarkedSubmissions
+  showMarkedSubmissions,
+  needAttention
 }
 

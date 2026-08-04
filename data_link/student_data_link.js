@@ -172,6 +172,27 @@ function resetTotalScore() {
   return Student.update({ totalScore: 0 }, { where: {} });
 }
 
+async function getAVGScores(group) {
+  const result = await Student.findOne({
+    attributes: [[sequelize.fn('AVG', sequelize.col('totalScore')), 'avgScore']],
+    where: { group, verified: true },
+    raw: true
+  });
+  return result ? parseFloat(parseFloat(result.avgScore || 0).toFixed(2)) : 0;
+}
+
+function findStudentsNeedAttention(avg, group) {
+  return Student.findAll({
+    where: {
+      group,
+      verified: true,
+      totalScore: { [Op.lt]: avg }
+    },
+    attributes: ['studentId', 'studentName', 'studentEmail', 'totalScore'],
+    order: [['totalScore', 'ASC']]
+  });
+}
+
 async function getStudentForDok() {
   const students = await Student.findAll({
     where: { verified: true },
@@ -217,5 +238,7 @@ module.exports = {
   deleteRejectionsBySemester,
   deleteStudentBySemester,
   findStudentByPhoneNumber,
-  getStudentForDok
+  getStudentForDok,
+  getAVGScores,
+  findStudentsNeedAttention
 }
