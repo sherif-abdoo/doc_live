@@ -4,6 +4,9 @@ const express = require("express");
 const httpStatusCode = require('./utils/http.status');
 const cors = require('cors');
 const logger = require('./utils/logger');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
 
 const app = express();
 
@@ -38,6 +41,14 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// -------------------- Swagger UI --------------------
+app.use('/api/v2/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+    customSiteTitle: 'DOK Live API Docs',
+    swaggerOptions: {
+        persistAuthorization: true,   // keeps the token filled in across page refreshes
+    }
+}));
 
 // -------------------- Routes --------------------
 app.get('/health', (req, res) => res.status(200).send('OK'));
@@ -97,7 +108,7 @@ app.use((error, req, res, next) => {
         await sequelize.sync({ alter: true });
         logger.db('✅ Database synced');
 
-        const PORT = process.env.PORT || 3001;
+        const PORT = process.env.PORT || 4000;
         app.listen(PORT, () => logger.info(`🚀 Server running on port ${PORT}`));
     } catch (error) {
         logger.error('❌ Database or server failed to start:', error);

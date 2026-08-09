@@ -1,0 +1,3481 @@
+openapi: 3.0.3
+info:
+  title: DOK Live API
+  description: |
+    Complete REST API documentation for the DOK Live educational platform.
+    
+    ## Authentication
+    Most endpoints require a JWT Bearer token obtained from `POST /login`.
+    - **Admin token** — returned when an admin/assistant logs in
+    - **Student token** — returned when a student logs in
+    
+    Pass the token as: `Authorization: Bearer <token>`
+  version: 1.0.0
+  contact:
+    name: DOK Live
+
+servers:
+  - url: http://localhost:4000
+    description: Local development
+  - url: https://dok-edu.com
+    description: Production
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Admin
+  - name: DOK (Super Admin)
+  - name: Student
+  - name: Feed
+  - name: Quiz
+  - name: Assignment
+  - name: Session
+  - name: Topic
+  - name: Material
+  - name: Leaderboard
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessMessage:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Error
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+
+    Admin:
+      type: object
+      properties:
+        adminId:
+          type: integer
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        group:
+          type: string
+        phoneNumber:
+          type: string
+        role:
+          type: string
+          enum: [assistant, teacher]
+        permission:
+          type: string
+          enum: [all, limited]
+        verified:
+          type: boolean
+
+    Student:
+      type: object
+      properties:
+        studentId:
+          type: integer
+        studentEmail:
+          type: string
+          format: email
+        studentName:
+          type: string
+        group:
+          type: string
+        semester:
+          type: string
+        parentEmail:
+          type: string
+        parentPhoneNumber:
+          type: string
+        studentPhoneNumber:
+          type: string
+        birthDate:
+          type: string
+          format: date-time
+        totalScore:
+          type: number
+        verified:
+          type: boolean
+        banned:
+          type: boolean
+
+    Quiz:
+      type: object
+      properties:
+        quizId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        mark:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+        semester:
+          type: string
+        durationInMin:
+          type: integer
+        topicId:
+          type: integer
+        publisher:
+          type: integer
+
+    Assignment:
+      type: object
+      properties:
+        assignId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        mark:
+          type: integer
+        document:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        semester:
+          type: string
+        topicId:
+          type: integer
+        publisher:
+          type: integer
+
+    Submission:
+      type: object
+      properties:
+        subId:
+          type: integer
+        score:
+          type: number
+          nullable: true
+        answers:
+          type: string
+        marked:
+          type: string
+          nullable: true
+        subDate:
+          type: string
+          format: date-time
+        studentId:
+          type: integer
+        assistantId:
+          type: integer
+        type:
+          type: string
+          enum: [quiz, assignment]
+        semester:
+          type: string
+        quizId:
+          type: integer
+          nullable: true
+        assId:
+          type: integer
+          nullable: true
+        markedAt:
+          type: string
+          format: date-time
+        feedback:
+          type: string
+          nullable: true
+
+    Session:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+        topicId:
+          type: integer
+        group:
+          type: string
+        semester:
+          type: string
+        dateAndTime:
+          type: string
+          format: date-time
+        finished:
+          type: boolean
+        day:
+          type: string
+
+    Topic:
+      type: object
+      properties:
+        topicId:
+          type: integer
+        topicName:
+          type: string
+        group:
+          type: string
+        semester:
+          type: string
+          enum: [jun, nov]
+        publisher:
+          type: integer
+        subject:
+          type: string
+          enum: [Biology, Physics, Chemistry]
+
+    Material:
+      type: object
+      properties:
+        materialId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        document:
+          type: string
+          nullable: true
+        link:
+          type: string
+          nullable: true
+        uploadDate:
+          type: string
+          format: date-time
+        topicId:
+          type: integer
+        publisher:
+          type: integer
+
+    Feed:
+      type: object
+      properties:
+        feedId:
+          type: integer
+        text:
+          type: string
+        dateAndTime:
+          type: string
+          format: date-time
+        semester:
+          type: string
+        adminId:
+          type: integer
+
+    Group:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        groupName:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: Error
+            data:
+              message: Not authorized, no token
+    Forbidden:
+      description: Authenticated but not permitted
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Validation error or bad input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+
+  # ─────────────────────────────────────────
+  # HEALTH
+  # ─────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Server is up
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  # ─────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────
+  /login:
+    post:
+      tags: [Auth]
+      summary: Log in (admin or student)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: secret123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Login successful
+                  token:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                      group:
+                        type: string
+                      name:
+                        type: string
+                      role:
+                        type: string
+                        example: teacher
+        '400':
+          description: Wrong password (admin)
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Invalid email or password
+        '401':
+          description: Wrong password (student)
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Wrong password
+        '403':
+          description: Account not verified or banned
+          content:
+            application/json:
+              examples:
+                notVerified:
+                  value:
+                    status: Error
+                    data:
+                      message: Email not verified
+                banned:
+                  value:
+                    status: Error
+                    data:
+                      message: Your account is banned
+        '404':
+          description: Email not found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Email not found
+
+  /login/me:
+    get:
+      tags: [Auth]
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              examples:
+                admin:
+                  value:
+                    status: success
+                    data:
+                      id: 1
+                      group: groupa
+                      name: Dr. Ahmed
+                      role: teacher
+                student:
+                  value:
+                    status: success
+                    data:
+                      id: 5
+                      group: groupa
+                      name: Ali Hassan
+                      role: student
+                      assistantId: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /login/getAllGroups:
+    get:
+      tags: [Auth]
+      summary: Get all available groups (public)
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Group'
+
+  /login/forgetPassword:
+    post:
+      tags: [Auth]
+      summary: Request a password-reset OTP via email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  email: user@example.com
+        '400':
+          description: OTP already requested
+          content:
+            application/json:
+              example:
+                status: You have already requested an OTP
+        '404':
+          description: Email not found
+          content:
+            application/json:
+              example:
+                status: email not found
+        '500':
+          description: Email service unavailable
+          content:
+            application/json:
+              example:
+                status: Email service unavailable. Try again later.
+
+  /login/otp:
+    post:
+      tags: [Auth]
+      summary: Verify the OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                  format: email
+                otp:
+                  type: string
+                  example: '123456'
+      responses:
+        '200':
+          description: OTP verified
+          content:
+            application/json:
+              example:
+                status: success
+                code: OTP_VERIFIED
+                message: OTP verified successfully
+        '400':
+          description: Invalid or expired OTP
+          content:
+            application/json:
+              examples:
+                invalid:
+                  value:
+                    status: error
+                    code: OTP_INVALID
+                    message: This OTP is not valid
+                expired:
+                  value:
+                    status: error
+                    code: OTP_EXPIRED
+                    message: This OTP has expired
+
+  /login/resetPassword/{email}:
+    post:
+      tags: [Auth]
+      summary: Reset password after OTP verification
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  example: newSecurePassword123
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              examples:
+                admin:
+                  value:
+                    status: success
+                    code: ADMIN_PASSWORD_UPDATED
+                    message: Admin password updated successfully
+                student:
+                  value:
+                    status: success
+                    code: STUDENT_PASSWORD_UPDATED
+                    message: Student password updated successfully
+        '400':
+          description: OTP not verified
+          content:
+            application/json:
+              example:
+                status: error
+                code: OTP_NOT_VERIFIED
+                message: OTP not verified
+        '404':
+          description: Email not found in any table
+          content:
+            application/json:
+              example:
+                status: error
+                code: USER_NOT_FOUND
+                message: No admin or student found with this email
+
+  # ─────────────────────────────────────────
+  # ADMIN
+  # ─────────────────────────────────────────
+  /admin/adminRegister:
+    post:
+      tags: [Admin]
+      summary: Register a new assistant (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password, phoneNumber, group]
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                password:
+                  type: string
+                phoneNumber:
+                  type: string
+                group:
+                  type: string
+      responses:
+        '201':
+          description: Assistant registered
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Assistant created successfully
+        '400':
+          description: Email or phone already exists
+          content:
+            application/json:
+              examples:
+                emailExists:
+                  value:
+                    status: Error
+                    data:
+                      message: Email already exists
+                phoneExists:
+                  value:
+                    status: Error
+                    data:
+                      message: Phone number already exists
+
+  /admin/adminSSE:
+    get:
+      tags: [Admin]
+      summary: Open SSE connection for real-time admin notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: SSE stream — first event is "connected"
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "event: connected\ndata: {\"message\":\"SSE connection established\"}\n\n"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/pendingRegistrations:
+    get:
+      tags: [Admin]
+      summary: List all pending (unverified) student registrations for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending students
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            email:
+                              type: string
+                            group:
+                              type: string
+                            phoneNumber:
+                              type: string
+                            semester:
+                              type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/getpendingCount:
+    get:
+      tags: [Admin]
+      summary: Get count of pending registrations for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending count
+          content:
+            application/json:
+              example:
+                status: success
+                message: Pending registration count
+                data:
+                  count: 5
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/verifyStudent/{studentEmail}:
+    patch:
+      tags: [Admin]
+      summary: Approve a pending student registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentEmail
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Student verified
+          content:
+            application/json:
+              example:
+                status: success
+                message: Student Ahmed Samir verified successfully
+                data:
+                  studentEmail: ahmed@example.com
+        '400':
+          description: Student already verified
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Student already verified
+        '403':
+          description: Student in different group
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: You are not allowed to access this student
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/rejectStudent/{studentEmail}:
+    patch:
+      tags: [Admin]
+      summary: Reject a pending student. Deletes student when all admins in the group reject.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentEmail
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Student rejected
+          content:
+            application/json:
+              example:
+                status: success
+                message: Student Ahmed Samir rejected successfully
+                data:
+                  id: 10
+                  studentEmail: ahmed@example.com
+        '400':
+          description: Already verified or already rejected by this admin
+          content:
+            application/json:
+              examples:
+                alreadyVerified:
+                  value:
+                    status: Error
+                    data:
+                      message: Student already verified
+                alreadyRejected:
+                  value:
+                    status: Error
+                    data:
+                      message: Can not reject student twice
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/checkStudentInGroup:
+    get:
+      tags: [Admin]
+      summary: Get all verified students in the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Verified students
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            email:
+                              type: string
+                            banned:
+                              type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/removeStudent/{studentEmail}:
+    delete:
+      tags: [Admin]
+      summary: Permanently delete a student (must be that student's assistant)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentEmail
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Student deleted
+          content:
+            application/json:
+              example:
+                status: success
+                message: Student Ahmed Samir deleted successfully
+                data:
+                  id: 10
+                  studentEmail: ahmed@example.com
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/banStudent/{studentEmail}:
+    patch:
+      tags: [Admin]
+      summary: Toggle ban/unban for a student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentEmail
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Ban status toggled
+          content:
+            application/json:
+              examples:
+                banned:
+                  value:
+                    status: success
+                    message: Student Ahmed Samir banned successfully
+                    data:
+                      id: 10
+                      studentEmail: ahmed@example.com
+                unbanned:
+                  value:
+                    status: success
+                    message: Student Ahmed Samir unbanned successfully
+                    data:
+                      id: 10
+                      studentEmail: ahmed@example.com
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/showMyProfile:
+    get:
+      tags: [Admin]
+      summary: Get the admin's own profile and their students list
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Admin profile
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  id: 3
+                  adminName: Sara Ali
+                  adminEmail: sara@example.com
+                  phoneNumber: '01099999999'
+                  group: groupa
+                  students: []
+                  admins: n/a
+        '404':
+          description: Admin not found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Admin not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/showStudentProfile/{studentId}:
+    get:
+      tags: [Admin]
+      summary: Get a specific student's full profile (must be that student's assistant)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Student profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Student'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/showUnmarkedSubmissions:
+    get:
+      tags: [Admin]
+      summary: List all unscored submissions for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unmarked submissions (or empty message)
+          content:
+            application/json:
+              examples:
+                found:
+                  value:
+                    status: success
+                    message: Unmarked submissions for admin Sara Ali
+                    data:
+                      submissions:
+                        - id: 22
+                          studentId: 10
+                          studentName: Ahmed Samir
+                          studentGroup: groupa
+                          type: assignment
+                          submittedAt: '2026-08-01T10:00:00.000Z'
+                          subject: Biology
+                          assignmentId: 5
+                          assignmentTitle: Cell Division
+                empty:
+                  value:
+                    status: success
+                    message: No unmarked submissions found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/showMarkedSubmissions:
+    get:
+      tags: [Admin]
+      summary: List all scored submissions for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Marked submissions
+          content:
+            application/json:
+              examples:
+                found:
+                  value:
+                    status: success
+                    data:
+                      submissions:
+                        - id: 20
+                          studentName: Ahmed Samir
+                          type: quiz
+                          score: 18
+                          markedAt: '2026-07-30T12:00:00.000Z'
+                          subject: Physics
+                empty:
+                  value:
+                    status: success
+                    message: No marked submissions found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/showAllSubmissions:
+    get:
+      tags: [Admin]
+      summary: List all submissions (marked and unmarked) for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All submissions
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  submissions:
+                    - id: 22
+                      studentId: 10
+                      quizId: null
+                      assignmentId: 5
+                      submittedAt: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/findSubmissionById/{id}:
+    get:
+      tags: [Admin]
+      summary: Get a single submission by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Submission found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      found:
+                        $ref: '#/components/schemas/Submission'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/markSubmission/{id}:
+    patch:
+      tags: [Admin]
+      summary: Score a submission and optionally attach a marked PDF. Supports re-marking.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                score:
+                  type: number
+                  example: 18
+                marked:
+                  type: string
+                  description: URL of the marked PDF
+                  example: https://cdn.example.com/marked/submission22.pdf
+      responses:
+        '200':
+          description: Submission marked
+          content:
+            application/json:
+              example:
+                status: success
+                message: Submission marked successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/createReport/{topicId}:
+    get:
+      tags: [Admin]
+      summary: Generate a full topic performance report (quiz grade, attendance, assignments per student)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Topic report
+          content:
+            application/json:
+              example:
+                topicId: 4
+                topicName: Photosynthesis
+                quizTitle: Chapter Quiz
+                quizTotalScore: 20
+                numberOfAssignments: 2
+                totalSession: 4
+                students:
+                  - id: 10
+                    studentName: Ahmed Samir
+                    quizScore: 16
+                    percentage: 80.0
+                    grade: A*
+                    attended: 3
+                    assignments:
+                      - id: 5
+                        title: Cell Drawing
+                        status: done
+        '403':
+          description: Not an admin or wrong group
+          content:
+            application/json:
+              example:
+                error: Access denied. Assistants only.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/makeReportForStudent/{studentId}:
+    get:
+      tags: [Admin]
+      summary: Generate a weekly report for a specific student (uses latest topic)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: topicId
+          in: path
+          required: false
+          schema:
+            type: integer
+          description: Optional — defaults to the student's latest topic
+      responses:
+        '200':
+          description: Weekly report
+          content:
+            application/json:
+              example:
+                status: success
+                message: Weekly report generated successfully
+                data:
+                  topicTitle: Photosynthesis
+                  studentName: Ahmed Samir
+                  totalSessions: 4
+                  sessionsAttended: 3
+                  totalAssignments: 2
+                  submittedAssignments: 1
+                  quizGrade: A
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/needsAttention:
+    get:
+      tags: [Admin]
+      summary: List students whose score is below the group average
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Students needing attention
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  averageScore: 72.5
+                  students:
+                    - studentId: 10
+                      studentName: Ahmed Samir
+                      totalScore: 45
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # DOK (SUPER ADMIN)
+  # ─────────────────────────────────────────
+  /dok/signUp:
+    post:
+      tags: [DOK (Super Admin)]
+      summary: Create the one DOK teacher account (adminId = 1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password, phoneNumber]
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                password:
+                  type: string
+                phoneNumber:
+                  type: string
+                role:
+                  type: string
+                  default: teacher
+                permission:
+                  type: string
+                  default: all
+      responses:
+        '201':
+          description: Teacher account created
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Teacher created successfully
+
+  /dok/showPendingAssistantRegistration:
+    get:
+      tags: [DOK (Super Admin)]
+      summary: List all unverified assistant registrations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending assistants
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  data:
+                    - name: Sara Ali
+                      email: sara@example.com
+                      group: groupa
+                      phoneNumber: '01099999999'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/acceptAssistant/{email}:
+    patch:
+      tags: [DOK (Super Admin)]
+      summary: Approve a pending assistant registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Assistant accepted
+          content:
+            application/json:
+              example:
+                status: success
+                message: Assistant with email sara@example.com accepted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /dok/rejectAssistant/{email}:
+    delete:
+      tags: [DOK (Super Admin)]
+      summary: Reject and permanently delete an assistant registration
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Assistant rejected and removed
+          content:
+            application/json:
+              example:
+                status: success
+                message: Assistant with email sara@example.com rejected and removed from database
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /dok/removeAssistant/{email}:
+    delete:
+      tags: [DOK (Super Admin)]
+      summary: Permanently remove an existing assistant account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Assistant removed
+          content:
+            application/json:
+              example:
+                status: success
+                message: Assistant with email sara@example.com removed successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /dok/checkAssistantInGroup/{group}:
+    get:
+      tags: [DOK (Super Admin)]
+      summary: List all assistants in a specific group
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Assistants in group
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  data:
+                    - name: Sara Ali
+                      email: sara@example.com
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/assignGroupToAssistant/{id}:
+    patch:
+      tags: [DOK (Super Admin)]
+      summary: Assign or change the group of an assistant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [group]
+              properties:
+                group:
+                  type: string
+      responses:
+        '200':
+          description: Group assigned
+          content:
+            application/json:
+              example:
+                status: success
+                message: Group groupb assigned to assistant Sara Ali successfully
+        '404':
+          description: Assistant not found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Assistant not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/createNewGroup:
+    post:
+      tags: [DOK (Super Admin)]
+      summary: Create a new student/assistant group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groupName]
+              properties:
+                groupName:
+                  type: string
+                  example: GroupC
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              example:
+                status: success
+                message: Group GroupC created successfully
+                data:
+                  groupId: 3
+                  groupName: groupc
+        '400':
+          description: Group name already exists
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Group name already exists
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/updateGroup:
+    patch:
+      tags: [DOK (Super Admin)]
+      summary: Rename an existing group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groupName, newName]
+              properties:
+                groupName:
+                  type: string
+                newName:
+                  type: string
+      responses:
+        '200':
+          description: Group renamed
+          content:
+            application/json:
+              example:
+                status: success
+                message: group GroupA changed to GroupAlpha
+        '400':
+          description: Group not found or new name already taken
+          content:
+            application/json:
+              examples:
+                notFound:
+                  value:
+                    status: Error
+                    data:
+                      message: Group name does not exist
+                nameTaken:
+                  value:
+                    status: Error
+                    data:
+                      message: New group name already exists
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/deleteGroup:
+    delete:
+      tags: [DOK (Super Admin)]
+      summary: Delete a group by name
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groupName]
+              properties:
+                groupName:
+                  type: string
+      responses:
+        '200':
+          description: Group deleted
+          content:
+            application/json:
+              example:
+                status: success
+                message: Group GroupC deleted successfully
+        '400':
+          description: Group not found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Group name does not exist
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/deleteAllAssignmentsSubmission:
+    delete:
+      tags: [DOK (Super Admin)]
+      summary: Delete ALL assignment submissions system-wide
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All assignment submissions deleted
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: All submissions for the assignment deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/deleteAllQuizSubmission:
+    delete:
+      tags: [DOK (Super Admin)]
+      summary: Delete ALL quiz submissions system-wide
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All quiz submissions deleted
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: All submissions for the quiz deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/deleteBySemester:
+    delete:
+      tags: [DOK (Super Admin)]
+      summary: "⚠️ DESTRUCTIVE — Delete all data for a given semester"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [semester]
+              properties:
+                semester:
+                  type: string
+                  enum: [jun, nov]
+      responses:
+        '200':
+          description: Semester data deleted
+          content:
+            application/json:
+              example:
+                status: success
+                message: All data for semester jun deleted successfully
+        '400':
+          description: Invalid semester
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Semester must be either 'Jun' or 'Nov'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/resetScore:
+    patch:
+      tags: [DOK (Super Admin)]
+      summary: Reset totalScore to 0 for every student
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Scores reset
+          content:
+            application/json:
+              example:
+                status: success
+                message: Total score reset to zero for all students
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dok/studentsDashboard:
+    get:
+      tags: [DOK (Super Admin)]
+      summary: Get a full dashboard of all students across all groups
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Students dashboard
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  totalStudents: 45
+                  totalGroups: 3
+                  students: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ─────────────────────────────────────────
+  # STUDENT
+  # ─────────────────────────────────────────
+  /student/studentRegister:
+    post:
+      tags: [Student]
+      summary: Register a new student (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [studentEmail, studentName, password, studentPhoneNumber, parentPhoneNumber, parentEmail, birthDate, group, semester]
+              properties:
+                studentEmail:
+                  type: string
+                  format: email
+                studentName:
+                  type: string
+                password:
+                  type: string
+                studentPhoneNumber:
+                  type: string
+                parentPhoneNumber:
+                  type: string
+                parentEmail:
+                  type: string
+                  format: email
+                birthDate:
+                  type: string
+                  format: date
+                group:
+                  type: string
+                semester:
+                  type: string
+      responses:
+        '201':
+          description: Student registered — awaiting admin approval
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Student registered successfully
+        '400':
+          description: Email or phone already exists
+          content:
+            application/json:
+              examples:
+                emailExists:
+                  value:
+                    status: Error
+                    data:
+                      message: Email already exists
+                phoneExists:
+                  value:
+                    status: Error
+                    data:
+                      message: Phone number already exists
+
+  /student/studentSSEConnection:
+    get:
+      tags: [Student]
+      summary: Open SSE connection for real-time student notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Student not found in DB
+          content:
+            application/json:
+              example:
+                message: Student not found in DB
+
+  /student/showMyAdminProfile:
+    get:
+      tags: [Student]
+      summary: Get the profile of the student's assigned assistant
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Admin profile
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  id: 3
+                  adminName: Sara Ali
+                  adminEmail: sara@example.com
+                  PhoneNumber: '01099999999'
+                  group: groupa
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/showMyProfile:
+    get:
+      tags: [Student]
+      summary: Get the student's own profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Student'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/getMyFeed:
+    get:
+      tags: [Student]
+      summary: Get feed posts from the student's assistant (auto-purges posts older than 14 days)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Feed posts
+          content:
+            application/json:
+              example:
+                status: success
+                results: 3
+                data:
+                  feeds:
+                    - feedId: 1
+                      text: Session moved to Saturday
+                      dateAndTime: '2026-08-01T08:00:00.000Z'
+                      semester: jun
+        '404':
+          description: No feed found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: No feed found for your assistant
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/showMySubmission:
+    get:
+      tags: [Student]
+      summary: List all of the student's submissions (quizzes and assignments)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Student's submissions
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  submissions:
+                    - id: 22
+                      type: assignment
+                      name: Cell Division
+                      subject: Biology
+                      submittedAt: '2026-08-01T10:00:00.000Z'
+                      score: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/showSubmission/{id}:
+    get:
+      tags: [Student]
+      summary: Get full details of one submission (must own it)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Submission details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Submission'
+        '403':
+          description: Submission belongs to a different student
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: You are not allowed to view this submission
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/showMarkedSubmission/{id}:
+    get:
+      tags: [Student]
+      summary: Get the score, marked PDF and feedback for a marked submission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked submission details
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  id: 22
+                  assistant: Sara Ali
+                  assId: 3
+                  score: 18
+                  markedPdf: https://cdn.example.com/marked/submission22.pdf
+                  markedAt: '2026-08-05T09:00:00.000Z'
+                  feedback: Good work!
+        '400':
+          description: Submission not marked yet
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Submission not marked yet
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/getQuizTrend:
+    get:
+      tags: [Student]
+      summary: Get quiz score trend data for line chart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Quiz trend data
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  points:
+                    - quizId: 3
+                      date: '2026-07-10T00:00:00.000Z'
+                      week: 1
+                      score: 16
+                      totalMark: 20
+                  chartPoints:
+                    - y: 1
+                      x: 16
+                      quizId: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/getMyWeeklyReport:
+    get:
+      tags: [Student]
+      summary: Get weekly performance report for latest topic (or a specific topic)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: false
+          schema:
+            type: integer
+          description: Optional — omit to use the latest topic
+      responses:
+        '200':
+          description: Weekly report
+          content:
+            application/json:
+              example:
+                status: success
+                message: Weekly report generated successfully
+                data:
+                  topicTitle: Photosynthesis
+                  studentName: Ahmed Samir
+                  totalSessions: 4
+                  sessionsAttended: 3
+                  quizGrade: A
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal server error
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /student/getUnsubmittedAssignments:
+    get:
+      tags: [Student]
+      summary: List all assignments in the student's group that have not been submitted
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unsubmitted assignments
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  assignments:
+                    - assignId: 6
+                      title: Lab Report
+                      topicId: 4
+                      endDate: '2026-09-01T00:00:00.000Z'
+                      submitted: 'false'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # FEED
+  # ─────────────────────────────────────────
+  /feed:
+    get:
+      tags: [Feed]
+      summary: Get all feed posts (auto-purges posts older than 14 days)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Feed posts
+          content:
+            application/json:
+              example:
+                status: success
+                results: 4
+                data:
+                  - feedId: 1
+                    text: Session moved to Saturday
+                    dateAndTime: '2026-08-01T08:00:00.000Z'
+                    semester: jun
+                    adminId: 3
+        '404':
+          description: Feed is empty
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Feed is empty
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /feed/postOnFeed:
+    post:
+      tags: [Feed]
+      summary: Create a new feed post and notify students via SSE
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text, semester]
+              properties:
+                text:
+                  type: string
+                  example: Quiz rescheduled to Friday!
+                semester:
+                  type: string
+                  enum: [jun, nov]
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Post created & submitted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # QUIZ
+  # ─────────────────────────────────────────
+  /quiz/createQuiz:
+    post:
+      tags: [Quiz]
+      summary: Create a new quiz
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, mark, date, semester, durationInMin, topicId]
+              properties:
+                title:
+                  type: string
+                  example: Waves & Sound
+                mark:
+                  type: number
+                  example: 20
+                date:
+                  type: string
+                  format: date-time
+                semester:
+                  type: string
+                  enum: [jun, nov]
+                durationInMin:
+                  type: integer
+                  example: 45
+                topicId:
+                  type: integer
+      responses:
+        '201':
+          description: Quiz created
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Quiz created successfully
+                  id: 7
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              examples:
+                missingFields:
+                  value:
+                    status: Error
+                    data:
+                      message: All fields are required
+                invalidMark:
+                  value:
+                    status: Error
+                    data:
+                      message: Mark must be a non-negative number
+                invalidDate:
+                  value:
+                    status: Error
+                    data:
+                      message: Invalid date format
+                invalidSemester:
+                  value:
+                    status: Error
+                    data:
+                      message: Semester must be either 'Jun' or 'Nov'
+                invalidDuration:
+                  value:
+                    status: Error
+                    data:
+                      message: Duration must be a positive number
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/getAllQuizzes:
+    get:
+      tags: [Quiz]
+      summary: Get all quizzes (students get a `submitted` flag per quiz)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All quizzes
+          content:
+            application/json:
+              example:
+                status: success
+                results: 5
+                data:
+                  quizzes:
+                    - quizId: 7
+                      title: Waves & Sound
+                      mark: 20
+                      semester: jun
+                      durationInMin: 45
+                      topicId: 4
+                      submitted: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/get_quiz_by_id/{quizId}:
+    get:
+      tags: [Quiz]
+      summary: Get a single quiz by ID with submitted flag
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Quiz details
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  quizData:
+                    quizId: 7
+                    title: Waves & Sound
+                    submitted: true
+        '404':
+          description: Quiz not found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Quiz not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/startQuiz/{quizId}:
+    get:
+      tags: [Quiz]
+      summary: Start a quiz — sets startDate to now, caches it, notifies students via SSE
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Quiz started
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Quiz started for group groupa and cached
+                  quiz:
+                    quizId: 7
+                    title: Waves & Sound
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/getActiveQuiz:
+    get:
+      tags: [Quiz]
+      summary: Get the currently active (cached) quiz for the user's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active quiz
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  activeQuiz:
+                    quizId: 7
+                    title: Waves & Sound
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No active quiz
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: No active quiz found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/submitActiveQuiz:
+    post:
+      tags: [Quiz]
+      summary: Submit answers for the currently active quiz (re-submit allowed)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              properties:
+                answers:
+                  type: string
+                  description: URL of answers PDF
+                  example: https://cdn.example.com/quiz-answers.pdf
+      responses:
+        '200':
+          description: Quiz submitted
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Quiz submitted successfully
+                  id: 22
+        '400':
+          description: Submission time expired
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Quiz submission time has expired
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/submitQuiz/{quizId}:
+    post:
+      tags: [Quiz]
+      summary: Submit (or re-submit) answers for any quiz by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              properties:
+                answers:
+                  type: string
+      responses:
+        '200':
+          description: Quiz submitted or resubmitted
+          content:
+            application/json:
+              examples:
+                new:
+                  value:
+                    status: success
+                    data:
+                      message: Quiz submitted successfully
+                      id: 22
+                resubmit:
+                  value:
+                    status: success
+                    data:
+                      message: Quiz resubmitted successfully
+                      id: 22
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/modifyQuiz/{quizId}:
+    patch:
+      tags: [Quiz]
+      summary: Update title and/or description of a quiz
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Quiz modified
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Quiz modified successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /quiz/deleteQuiz/{quizId}:
+    delete:
+      tags: [Quiz]
+      summary: Permanently delete a quiz and all its submissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: quizId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Quiz deleted
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Quiz deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # ASSIGNMENT
+  # ─────────────────────────────────────────
+  /assignment/createAssignment:
+    post:
+      tags: [Assignment]
+      summary: Create a new assignment (startDate set to now automatically)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, mark, document, endDate, semester, topicId]
+              properties:
+                title:
+                  type: string
+                  example: Cell Division Lab
+                description:
+                  type: string
+                mark:
+                  type: number
+                  example: 15
+                document:
+                  type: string
+                  description: Must be a valid .pdf URL
+                  example: https://cdn.example.com/assignment5.pdf
+                endDate:
+                  type: string
+                  format: date-time
+                semester:
+                  type: string
+                  enum: [jun, nov]
+                topicId:
+                  type: integer
+      responses:
+        '201':
+          description: Assignment created
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: assignment created successfully
+                  id: 5
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              examples:
+                missingFields:
+                  value:
+                    status: Error
+                    data:
+                      message: All fields are required
+                invalidPDF:
+                  value:
+                    status: Error
+                    data:
+                      message: Assignment PDF must be a valid link ending with .pdf
+                pastEndDate:
+                  value:
+                    status: Error
+                    data:
+                      message: End date must be after start date
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /assignment/getAllAssignments:
+    get:
+      tags: [Assignment]
+      summary: Get all assignments for user's group with state flag (submitted/missing/unsubmitted)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Assignments list
+          content:
+            application/json:
+              example:
+                submitted: 1
+                submittedLate: 0
+                missed: 1
+                data:
+                  assignments:
+                    - assignId: 5
+                      title: Cell Division Lab
+                      endDate: '2026-09-15T23:59:00.000Z'
+                      state: unsubmitted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /assignment/get_assignment_by_id/{assignId}:
+    get:
+      tags: [Assignment]
+      summary: Get a single assignment with submitted flag and subject
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assignId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Assignment details
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  assignData:
+                    assignId: 5
+                    title: Cell Division Lab
+                    submitted: false
+                  subject: Biology
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /assignment/submitAssignment/{assignId}:
+    post:
+      tags: [Assignment]
+      summary: Submit or re-submit an assignment (re-submit clears previous score)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assignId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              properties:
+                answers:
+                  type: string
+                  description: URL of the submitted PDF
+                  example: https://cdn.example.com/student-answer5.pdf
+      responses:
+        '200':
+          description: Assignment submitted or resubmitted
+          content:
+            application/json:
+              examples:
+                new:
+                  value:
+                    status: success
+                    data:
+                      message: Assignment submitted successfully
+                      id: 22
+                resubmit:
+                  value:
+                    status: success
+                    data:
+                      message: Assignment resubmitted successfully
+                      id: 22
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /assignment/getUnsubmittedAssignments:
+    get:
+      tags: [Assignment]
+      summary: Get all assignments in the student's group with no submission yet
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unsubmitted assignments
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  assignments:
+                    - assignId: 6
+                      title: Lab Report
+                      topicId: 4
+                      endDate: '2026-09-01T00:00:00.000Z'
+                      submitted: 'false'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /assignment/deleteAssignment/{assignId}:
+    delete:
+      tags: [Assignment]
+      summary: Delete an assignment and its submissions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assignId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Assignment deleted
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Assignment deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /assignment/modifyAssignment/{assignId}:
+    patch:
+      tags: [Assignment]
+      summary: Update title and/or description of an assignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assignId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Assignment modified
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Assignment modified successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # SESSION
+  # ─────────────────────────────────────────
+  /session/startSession:
+    post:
+      tags: [Session]
+      summary: Create and start a session for the admin's group using the latest topic
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Session started
+          content:
+            application/json:
+              example:
+                status: success
+                message: Session created successfully
+                data:
+                  id: 11
+                  topicId: 4
+                  group: groupa
+                  semester: jun
+                  dateAndTime: '2026-08-09T10:00:00.000Z'
+                  day: Sunday
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /session/endSession:
+    patch:
+      tags: [Session]
+      summary: End the current active session for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Session ended
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  message: Session ended successfully
+        '404':
+          description: No active session found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: No active session found for your group
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /session/attendSession:
+    post:
+      tags: [Session]
+      summary: Record attendance for the active session (any authenticated user)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Attendance recorded (or already attended)
+          content:
+            application/json:
+              examples:
+                firstTime:
+                  value:
+                    status: success
+                    data:
+                      message: Attendance recorded successfully
+                reAttend:
+                  value:
+                    status: success
+                    data:
+                      message: Re-attending this session
+                admin:
+                  value:
+                    status: success
+                    data:
+                      message: Admin entering session.
+        '404':
+          description: No active session for group
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: No active session found for your group
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /session/getAllAttendanceForSession/{sessionId}:
+    get:
+      tags: [Session]
+      summary: Get all attendance records for a specific session
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Attendance records
+          content:
+            application/json:
+              example:
+                status: success
+                results: 12
+                data:
+                  attendanceRecords: []
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /session/getAllSessions:
+    get:
+      tags: [Session]
+      summary: Get all sessions for the user's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sessions list
+          content:
+            application/json:
+              example:
+                status: success
+                results: 8
+                data:
+                  sessions: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /session/getActiveSession:
+    get:
+      tags: [Session]
+      summary: Get the current unfinished session for the admin's group (DB query)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active session
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  activeSession:
+                    sessionId: 11
+                    group: groupa
+                    finished: false
+        '404':
+          description: No active session
+          content:
+            application/json:
+              example:
+                status: error
+                message: No active sessions were found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /session/getLastCreatedSession:
+    get:
+      tags: [Session]
+      summary: Get the most recently created session for the admin's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Last session
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  lastSession:
+                    sessionId: 11
+                    group: groupa
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # TOPIC
+  # ─────────────────────────────────────────
+  /topic/createTopic:
+    post:
+      tags: [Topic]
+      summary: Create a new topic for the admin's group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [topicName, semester, subject]
+              properties:
+                topicName:
+                  type: string
+                  example: Photosynthesis
+                semester:
+                  type: string
+                  enum: [jun, nov]
+                subject:
+                  type: string
+                  enum: [Biology, Physics, Chemistry]
+      responses:
+        '201':
+          description: Topic created
+          content:
+            application/json:
+              example:
+                status: success
+                message: Topic created successfully
+                data:
+                  id: 4
+                  topicName: Photosynthesis
+                  subject: Biology
+                  semester: jun
+                  group: groupa
+        '400':
+          description: Invalid semester or subject
+          content:
+            application/json:
+              examples:
+                invalidSemester:
+                  value:
+                    status: Error
+                    data:
+                      message: Semester must be either 'Jun' or 'Nov'
+                invalidSubject:
+                  value:
+                    status: Error
+                    data:
+                      message: Subject must be either 'Biology', 'Physics' or 'Chemistry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /topic/get_topic_by_id/{topicId}:
+    get:
+      tags: [Topic]
+      summary: Get a topic with all its quizzes, assignments, and materials
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Topic with content
+          content:
+            application/json:
+              example:
+                status: success
+                data:
+                  id: '4'
+                  topicName: Photosynthesis
+                  subject: Biology
+                  semester: jun
+                  quizzes:
+                    - quizId: 7
+                      title: Waves & Sound
+                      type: quiz
+                  assignments:
+                    - assignId: 5
+                      title: Cell Division Lab
+                      type: pdf
+                  materials:
+                    - materialId: 9
+                      title: Chapter 3 Notes
+                      type: pdf
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /topic/getAllTopics:
+    get:
+      tags: [Topic]
+      summary: Get all topics for the user's group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Topics list
+          content:
+            application/json:
+              example:
+                status: success
+                message: Retrieved 3 topics for group groupa
+                data:
+                  topics:
+                    - topicId: 4
+                      topicName: Photosynthesis
+                      subject: Biology
+                      semester: jun
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /topic/updateTopic/{topicId}:
+    patch:
+      tags: [Topic]
+      summary: Update a topic's name, semester, and/or subject
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                topicName:
+                  type: string
+                semester:
+                  type: string
+                  enum: [jun, nov]
+                subject:
+                  type: string
+                  enum: [Biology, Physics, Chemistry]
+      responses:
+        '200':
+          description: Topic updated
+          content:
+            application/json:
+              example:
+                status: success
+                message: topic Respiration updated successfully
+                data:
+                  id: 4
+                  topicName: Respiration
+                  subject: Biology
+                  semester: nov
+        '400':
+          description: Invalid semester or subject
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Semester must be either 'Jun' or 'Nov'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /topic/deleteTopic/{topicId}:
+    delete:
+      tags: [Topic]
+      summary: Delete a topic and all sessions linked to it
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Topic deleted
+          content:
+            application/json:
+              example:
+                status: success
+                message: 'topic with id: 4 is deleted'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # MATERIAL
+  # ─────────────────────────────────────────
+  /material/createMaterial:
+    post:
+      tags: [Material]
+      summary: Create a new learning material linked to a topic
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, topicId]
+              properties:
+                title:
+                  type: string
+                  example: Chapter 3 Notes
+                description:
+                  type: string
+                document:
+                  type: string
+                  description: PDF URL (optional if link is provided)
+                  example: https://cdn.example.com/chapter3.pdf
+                link:
+                  type: string
+                  description: Web URL (optional if document is provided)
+                  example: https://youtube.com/watch?v=abc123
+                topicId:
+                  type: integer
+      responses:
+        '201':
+          description: Material created
+          content:
+            application/json:
+              example:
+                status: success
+                message: Material created successfully
+                data:
+                  newMaterial:
+                    materialId: 9
+                    title: Chapter 3 Notes
+                    topicId: 4
+                    subject: Biology
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: 'Missing required fields: title, description, document, topicId'
+        '404':
+          description: Topic not found
+          content:
+            application/json:
+              example:
+                status: Error
+                data:
+                  message: Topic with id 99 not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /material/getAllMaterials:
+    get:
+      tags: [Material]
+      summary: Get all materials for the user's group with auto-derived type (pdf/url)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Materials list
+          content:
+            application/json:
+              example:
+                status: success
+                results: 6
+                data:
+                  materials:
+                    - materialId: 9
+                      title: Chapter 3 Notes
+                      type: pdf
+                      topicId: 4
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /material/get_material_by_id/{id}:
+    get:
+      tags: [Material]
+      summary: Get a single material by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Material details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      found:
+                        $ref: '#/components/schemas/Material'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /material/getMaterialByTopicId/{topicId}:
+    get:
+      tags: [Material]
+      summary: Get all materials for a specific topic
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Materials for topic
+          content:
+            application/json:
+              example:
+                status: success
+                results: 3
+                data:
+                  materials: []
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Topic not found or no materials
+          content:
+            application/json:
+              examples:
+                topicNotFound:
+                  value:
+                    status: Error
+                    data:
+                      message: Topic not found
+                noMaterials:
+                  value:
+                    status: Error
+                    data:
+                      message: No materials found for topicId 4
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+
+  /material/updateMaterial/{id}:
+    patch:
+      tags: [Material]
+      summary: Update a material's fields (admin must match publisher's group)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                document:
+                  type: string
+                link:
+                  type: string
+                topicId:
+                  type: integer
+      responses:
+        '200':
+          description: Material updated
+          content:
+            application/json:
+              example:
+                status: success
+                message: Material updated successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /material/deleteMaterial/{id}:
+    delete:
+      tags: [Material]
+      summary: Permanently delete a material
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Material deleted
+          content:
+            application/json:
+              example:
+                status: success
+                message: Material deleted successfully
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # LEADERBOARD
+  # ─────────────────────────────────────────
+  /leaderBoard:
+    get:
+      tags: [Leaderboard]
+      summary: Paginated leaderboard ordered by total score
+      description: |
+        Returns 20 students per page sorted by totalScore descending.
+        Student token — response includes the student's own rank and score.
+        Admin token — response omits the student object.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: Page number (20 students per page)
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              examples:
+                studentView:
+                  summary: Response for a student token
+                  value:
+                    status: success
+                    data:
+                      pagination:
+                        currentPage: 1
+                        totalPages: 3
+                        totalStudents: 55
+                      student:
+                        score: 85.5
+                        rank: 7
+                      leaderboard:
+                        - studentId: 4
+                          studentName: Top Student
+                          totalScore: 120
+                          group: groupa
+                adminView:
+                  summary: Response for an admin token
+                  value:
+                    status: success
+                    data:
+                      pagination:
+                        currentPage: 1
+                        totalPages: 3
+                        totalStudents: 55
+                      leaderboard:
+                        - studentId: 4
+                          studentName: Top Student
+                          totalScore: 120
+                          group: groupa
+        '401':
+          $ref: '#/components/responses/Unauthorized'
