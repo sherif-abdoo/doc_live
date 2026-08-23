@@ -17,7 +17,7 @@ const { sanitizeInput } = require('../utils/sanitize.js');
 const topicDl = require('../data_link/topic_data_link.js');
 const logger = require('../utils/logger');
 
-const startSession = asyncWrapper(async (req, res) => {
+const startSession = asyncWrapper(async (req, res, next) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     sanitizeInput(req.body);
     const adminId = req.admin.id;
@@ -27,8 +27,38 @@ const startSession = asyncWrapper(async (req, res) => {
     const adminName = req.admin.name;
     const today = new Date();
     const dayName = days[today.getDay()];
-    const currTopic = await topicDl.getStudentLastTopic(sgroup);
-    logger.debug(`[admin : ${req.admin.email}] Current topic: ${currTopic.topicId} - ${currTopic.title}`);
+
+    const alreadyLive = await session.getActiveSessionByAGroup(sgroup);
+    if (alreadyLive) {
+        logger.info(`[admin : ${req.admin.email}] Session already live for group: ${sgroup}`);
+        return next(new AppError("A session is already live for your group", httpStatus.BAD_REQUEST));
+    }
+
+    //TA now chooses the topic for the session instead of using the most recent topic.
+    let currTopic;
+    if (topicId !== undefined && topicId !== null && topicId !== '') {
+        currTopic = await topicDl.getTopicById(topicId);
+        if (!currTopic) {
+            logger.info(`[admin : ${req.admin.email}] Topic not found: ${topicId}`);
+            return next(new AppError("Topic not found", httpStatus.NOT_FOUND));
+        }
+        // The same rule the topic middleware uses: your own group, or either side
+        // being 'all' (the teacher account, and topics published to everyone).
+        if (currTopic.group !== sgroup && sgroup !== 'all' && currTopic.group !== 'all') {
+            logger.info(`[admin : ${req.admin.email}] Topic ${topicId} belongs to group ${currTopic.group}`);
+            return next(new AppError("You do not have permission to use this topic", httpStatus.FORBIDDEN));
+        }
+    } else {
+        currTopic = await topicDl.getStudentLastTopic(sgroup);
+    }
+
+    // A group with no topic at all used to crash here on `currTopic.topicId`,
+    // answering 500 instead of saying what was wrong.
+    if (!currTopic) {
+        logger.info(`[admin : ${req.admin.email}] No topic available for group: ${sgroup}`);
+        return next(new AppError("Create a topic before starting a session", httpStatus.BAD_REQUEST));
+    }
+    logger.debug(`[admin : ${req.admin.email}] Current topic: ${currTopic.topicId} - ${currTopic.topicName}`);
 
     const newSession = await admin.createSession(currTopic.topicId, sgroup, currTopic.semester, today, dayName);
     const key = `activeSession:${sgroup}`;
@@ -143,20 +173,24 @@ const getAllSessions = asyncWrapper(async (req, res, next) => {
 
 })
 
+/**
+ * The currently live session, for EITHER role.
+ *
+ * It was admin-only and looked the group up with an exact match, so a student had
+ * no way to ask "is my class live?" — and a session started by the teacher
+ * account (group 'all') was invisible even to admins of a real group. Both are
+ * fixed by reading `req.activeSession`, which `activeSessionExists` resolves with
+ * the group-then-'all' fallback that `attendSession` already relies on.
+ *
+ * The 404 for "nothing live" is raised by that middleware, so it no longer has to
+ * be produced here.
+ */
 const getActiveSession = asyncWrapper(async (req, res, next) => {
-    const adminGroup = req.admin.group;
-    logger.debug(`[admin : ${req.admin.email}] Fetching active session for group: ${adminGroup}`);
-    const activeSession = await session.getActiveSessionByGroup(adminGroup);
+    const activeSession = req.activeSession;
+    const requester = req.user?.type === 'student' ? `[student : ${req.user.email}]` : `[admin : ${req.user?.email}]`;
+    logger.debug(`${requester} Fetching active session`);
 
-    if (!activeSession) {
-        logger.info(`[admin : ${req.admin.email}] No active session found for group: ${adminGroup}`);
-        return res.status(404).json({
-            status: "error",
-            message: "No active sessions were found",
-        });
-    }
-
-    logger.info(`[admin : ${req.admin.email}] Active session found: ${activeSession.sessionId}`);
+    logger.info(`${requester} Active session found: ${activeSession.sessionId}`);
     return res.status(200).json({
         status: "success",
         data: { activeSession },

@@ -33,8 +33,10 @@ router.route('/getAllAttendanceForSession/:sessionId')
 router.route('/getAllSessions')
     .get(auth.protect, sessionControllers.getAllSessions);
   
+// Any signed-in user: a student needs to know their class is live, and the
+// middleware resolves the group-then-'all' fallback for both roles.
 router.route('/getActiveSession')
-    .get(auth.adminProtect, sessionControllers.getActiveSession);
+    .get(auth.protect, sessionMiddleWare.activeSessionExists, sessionControllers.getActiveSession);
     
 router.route('/getLastCreatedSession')
     .get(auth.adminProtect, sessionControllers.getLastCreatedSession);    

@@ -149,7 +149,7 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
     const found = await student.findStudentById(studentId);
     const { quizId } = req.params;
     if (req.submitted === "false") {
-        logger.info(`[student : ${req.student.email}] Creating new submission for quiz: ${quizId}`);
+        logger.info(`[student : ${req.user.email}] Creating new submission for quiz: ${quizId}`);
         const newSub = await quiz.createSubmission(quizId, studentId, found.assistantId, answers, found.semester);
 
         return res.status(200).json({
@@ -161,7 +161,9 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
         });
     }
     else {
-        logger.info(`[student : ${req.student.email}] Resubmitting quiz: ${quizId}`);
+        // Same fix as the branch above: this chain has `req.user`, not
+        // `req.student`. A re-submit crashed here before saving the new answers.
+        logger.info(`[student : ${req.user.email}] Resubmitting quiz: ${quizId}`);
         const submission = await quiz.findSubmissionByQuizAndStudent(quizId, studentId);
         submission.answers = answers;
         submission.subDate = new Date();
