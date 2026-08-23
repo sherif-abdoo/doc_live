@@ -20,6 +20,7 @@ const logger = require('../utils/logger');
 const startSession = asyncWrapper(async (req, res, next) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     sanitizeInput(req.body);
+    const { topicId } = req.body;
     const adminId = req.admin.id;
     const sgroup = req.admin.group;
     logger.debug(`[admin : ${req.admin.email}] Admin group: ${sgroup}`);

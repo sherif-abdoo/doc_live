@@ -7,7 +7,7 @@ const studentMiddleWare = require('../middleware/student_middleware');
 const sessionMiddleWare = require('../middleware/session_middleware');
 
 router.route('/attendSession')
-    .post(auth.protect,sessionMiddleWare.activeSessionExists,  sessionControllers.attendSession);
+    .post(auth.protect, sessionMiddleWare.activeSessionExists, sessionControllers.attendSession);
 
 // router.route('/createSession')
 //     .post(auth.adminProtect, sessionControllers.createSession);
@@ -22,9 +22,9 @@ router.route('/attendSession')
 //     .get(auth.studentProtect, sessionMiddleWare.upcomingSession, sessionControllers.getUpcomingSession);
 
 router.route('/startSession')
-    .post(auth.adminProtect,sessionControllers.startSession);
+    .post(auth.adminProtect, sessionControllers.startSession);
 
-router.route('/endSession') 
+router.route('/endSession')
     .patch(auth.adminProtect, sessionControllers.endSession);
 
 router.route('/getAllAttendanceForSession/:sessionId')
@@ -32,13 +32,13 @@ router.route('/getAllAttendanceForSession/:sessionId')
 
 router.route('/getAllSessions')
     .get(auth.protect, sessionControllers.getAllSessions);
-  
+
 // Any signed-in user: a student needs to know their class is live, and the
 // middleware resolves the group-then-'all' fallback for both roles.
 router.route('/getActiveSession')
     .get(auth.protect, sessionMiddleWare.activeSessionExists, sessionControllers.getActiveSession);
-    
+
 router.route('/getLastCreatedSession')
-    .get(auth.adminProtect, sessionControllers.getLastCreatedSession);    
+    .get(auth.adminProtect, sessionControllers.getLastCreatedSession);
 
 module.exports = router;
