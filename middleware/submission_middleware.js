@@ -74,16 +74,16 @@ const checkData = asyncWrapper(async (req, res, next) => {
     const { marked, score } = req.body
     const found = req.found;
     logger.debug(`[admin : ${req.admin.email}] Validating mark data for submission: ${found.id}`);
-    if (req.found.score) {
-        logger.debug(`[admin : ${req.admin.email}] Not first mark for submission: ${found.id}`);
-        next();
-        return;
-    }
+    /* if (req.found.score) {
+         logger.debug(`[admin : ${req.admin.email}] Not first mark for submission: ${found.id}`);
+         next();
+         return;
+     }*/
     const nscore = Number(score); // Convert score to a number
-    if (!marked || !score) {
+    /*if (!marked || !score) {
         logger.info(`[admin : ${req.admin.email}] Missing required fields for submission: ${found.id}`);
         return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
-    }
+    }*/
     let total;
     if (found.type === "quiz") {
         const qfound = await quiz.getQuizById(found.quizId);
@@ -95,13 +95,13 @@ const checkData = asyncWrapper(async (req, res, next) => {
     }
     logger.debug(`[admin : ${req.admin.email}] All fields checked for submission: ${found.id}, total: ${total}`);
 
-    const pdfRegex = /^https?:\/\/.+\.pdf$/i;
+    /*const pdfRegex = /^https?:\/\/.+\.pdf$/i;
     if (typeof marked !== 'string' || !pdfRegex.test(marked.trim())) {
         logger.info(`[admin : ${req.admin.email}] Invalid marked PDF link for submission: ${found.id}`);
         return next(new AppError("marked PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
     }
     logger.debug(`[admin : ${req.admin.email}] Marked PDF link valid for submission: ${found.id}`)
-
+*/
     if (typeof nscore !== 'number' || nscore <= 0 || nscore > total) {
         logger.info(`[admin : ${req.admin.email}] Invalid score: ${score} (total: ${total}) for submission: ${found.id}`);
         return next(new AppError("Score must be a positive number and less than the total score", httpStatus.BAD_REQUEST));
