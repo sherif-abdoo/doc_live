@@ -17,6 +17,7 @@ const STATIC_ALLOWED = new Set([
     'https://doc-frontend-live-git-main-horizontal12.vercel.app',
     'https://dok-edu.com',
     'https://www.dok-edu.com',
+    'http://92.205.128.25:8081',
 ]);
 
 function isAllowedOrigin(origin) {
