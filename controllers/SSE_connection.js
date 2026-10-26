@@ -9,13 +9,12 @@ const establishAdminConnection = async (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized: No admin found" });
   }
 
-  // SSE headers
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders?.();
   const adminFound = await admin.findAdminById(req.admin.id);
-  // Confirm connection event
+
   res.write("event: connected\n");
   res.write(`data: ${JSON.stringify({
     message: "SSE connection established",
@@ -28,19 +27,16 @@ const establishAdminConnection = async (req, res, next) => {
     },
   })}\n\n`);
 
-  // Add admin to the SSE clients pool
   SSE.addAdminClient(res, adminFound.email, adminFound.name, adminFound.role, req.admin.group);
 
-  // Heartbeat to keep connection alive
   const hb = setInterval(() => {
     logger.debug("💓 Heartbeat sent to admin");
     res.write(": ping\n\n");
   }, 25000);
 
-  // Handle connection close
   req.on("close", () => {
     clearInterval(hb);
-    SSE.removeClient(res); // 👈 you need this function in your pool manager
+    SSE.removeClient(res);
   });
 };
 
@@ -59,15 +55,13 @@ const establishStudentConnection = async (req, res) => {
     return res.status(404).json({ message: "Student not found in DB" });
   }
 
-  logger.db("✅ Student found in DB:", found.studentEmail);
+  logger.db(`[student : ${found.studentEmail} | ${found.studentName} | ${found.group}] ✅ Student found in DB`);
 
-  // SSE headers
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders?.();
 
-  // Confirm connection event
   res.write("event: connected\n");
   res.write(`data: ${JSON.stringify({
     message: "SSE connection established",
@@ -79,24 +73,21 @@ const establishStudentConnection = async (req, res) => {
     },
   })}\n\n`);
 
-  // Add student to the SSE clients pool
   SSE.addStudentClient(res, found.studentEmail, found.studentName, found.group);
-  logger.info(`👨‍🎓 Added ${found.studentEmail} to SSE clients pool`);
+  logger.info(`[student : ${found.studentEmail} | ${found.studentName} | ${found.group}] 👨‍🎓 Added to SSE clients pool`);
 
-  // Heartbeat to keep connection alive
   const hb = setInterval(() => {
     logger.debug("💓 Heartbeat sent to student");
     res.write(": ping\n\n");
   }, 25000);
 
-  // Handle connection close
   req.on("close", () => {
     clearInterval(hb);
     SSE.removeClient(res);
-    logger.debug(`❌ SSE closed for student ${found.studentEmail}`);
+    logger.debug(`[student : ${found.studentEmail} | ${found.studentName} | ${found.group}] ❌ SSE connection closed`);
   });
 
-  logger.info(`✅ SSE established and waiting for student ${found.studentEmail}`);
+  logger.info(`[student : ${found.studentEmail} | ${found.studentName} | ${found.group}] ✅ SSE established and waiting`);
 };
 
 

@@ -8,52 +8,48 @@ const logger = require('../utils/logger');
 
 const forgetPassword = asyncwrapper(async (req, res, next) => {
     sanitizeInput(req.body);
-
-    // get the email from the user
     const email = req.body.email;
 
-    // Check the email if it's in the data base or not 
-    const user = await User.findUserByEmail(email);
-    if (user) {
+    logger.debug(`[system] Forget password request for email: ${email}`);
 
-        // Check if this email has requested an otp or not
-        const hasOTP = await User.HasOTP(email);
-        logger.debug(hasOTP);
-        if (hasOTP === true) {
-            res.status(400).json({
-                status: "You have already requested an OTP",
-            })
-        }
-        else {
-            // in this case email is in the data base and it didn't request an otp
-            const otp = generateOTP();// generate otp
-            try {
-                const result = await sengGrid.sendOTPEmail(email, otp); // WAIT for the email
-            }
-            catch (error) {
-                logger.error("Email sending failed:", error);
-                return res.status(500).json({
-                    status: "Email service unavailable. Try again later.",
-                });
-            }// send email with the otp
-            User.addOTP(email, otp);
-            res.json({
-                status: "success",
-                data: {
-                    email: email
-                }
-            });
-        }
+    const user = await User.findUserByEmail(email);
+    if (!user) {
+        logger.info(`[system] Email not found in database: ${email}`);
+        return res.status(404).json({ status: "email not found" });
     }
-    res.status(404).json({
-        status: "email not found",
-    })
+
+    logger.debug(`[system] User found for email: ${email}, checking existing OTP`);
+    const hasOTP = await User.HasOTP(email);
+
+    if (hasOTP === true) {
+        logger.info(`[system] OTP already requested for email: ${email}`);
+        return res.status(400).json({ status: "You have already requested an OTP" });
+    }
+
+    const otp = generateOTP();
+    logger.debug(`[system] Generated OTP for email: ${email}`);
+
+    try {
+        await sengGrid.sendOTPEmail(email, otp);
+        logger.info(`[system] OTP email sent successfully to: ${email}`);
+    } catch (error) {
+        logger.error(`[system] Email sending failed for: ${email}, error: ${error.message}`);
+        return res.status(500).json({ status: "Email service unavailable. Try again later." });
+    }
+
+    await User.addOTP(email, otp);
+    logger.info(`[system] OTP saved for email: ${email}`);
+
+    return res.json({
+        status: "success",
+        data: { email }
+    });
 });
 
 function generateOTP() {
-    return crypto.randomInt(100000, 999999); // 6 digits
+    return crypto.randomInt(100000, 999999);
 }
 
 module.exports = {
     forgetPassword,
-}
+};

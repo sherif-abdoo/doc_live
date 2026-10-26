@@ -22,10 +22,10 @@ const createAssignment = asyncWrapper(async (req, res) => {
   const nmark = Number(mark);
   const startDate = new Date();
   const publisher = req.admin.id;
-  logger.debug(`[admin : ${req.admin.email}] Creating assignment: ${title}, topicId: ${topicId}, mark: ${nmark}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating assignment: ${title}, topicId: ${topicId}, mark: ${nmark}`);
   const createdAssignment = await assignment.createAssignment
     (nmark, document, startDate, endDate, semester, publisher, topicId, title, description)
-  logger.info(`[admin : ${req.admin.email}] Assignment created successfully, id: ${createdAssignment.assignId}`);
+  logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignment created successfully, id: ${createdAssignment.assignId}`);
   return res.status(201).json({
     status: "success",
     data: { message: "assignment created successfully", id: createdAssignment.assignId },
@@ -35,7 +35,9 @@ const createAssignment = asyncWrapper(async (req, res) => {
 const getAllAssignments = asyncWrapper(async (req, res) => {
   const group = req.user.group;
   const studentId = req.user.id;
-  const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+  const requester = req.user.type === 'student'
+    ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+    : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
   logger.debug(`${requester} Fetching all assignments for group: ${group}`);
 
   const assignments = (group === 'all'
@@ -95,7 +97,11 @@ const getAllAssignments = asyncWrapper(async (req, res) => {
 
 const getAssignmentById = asyncWrapper(async (req, res) => {
   const assignData = req.assignData;
-  const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+  const requester = req.user
+    ? `[user : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+    : req.admin
+      ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+      : `[student : ${req.student.email} | ${req.student.name} | ${req.student.group}]`;
   logger.debug(`${requester} Fetching assignment by id: ${assignData.assignId}`);
   const topicf = await topic.getTopicById(assignData.topicId);
   const submitteed = await submission.getSubmissionForAssignment(req.user.id, assignData.assignId)
@@ -120,16 +126,16 @@ const submitAssignment = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
   const found = await student.findStudentById(studentId);
   const { assignId } = req.params;
-  logger.debug(`[student : ${req.student.email}] Submitting assignment: ${assignId}`);
+  logger.debug(`[student : ${req.student.email} | ${found.studentName} | ${found.group}] Submitting assignment: ${assignId}`);
   if (req.submitted === "false") {
-    logger.info(`[student : ${req.student.email}] Creating new submission for assignment: ${assignId}`);
+    logger.info(`[student : ${req.student.email} | ${found.studentName} | ${found.group}] Creating new submission for assignment: ${assignId}`);
     const newSub = await assignment.createSubmission(assignId, studentId, found.assistantId, answers, found.semester);
     return res.status(200).json({
       status: "success",
       data: { message: "Assignment submitted successfully", id: newSub.id }
     });
   } else {
-    logger.info(`[student : ${req.student.email}] Resubmitting assignment: ${assignId}`);
+    logger.info(`[student : ${req.student.email} | ${found.studentName} | ${found.group}] Resubmitting assignment: ${assignId}`);
     const studentSub = await student.findStudentById(req.student.id);
     const submission = await assignment.findSubmissionByAssignmentAndStudent(assignId, studentId);
     studentSub.totalScore -= submission.score;
@@ -149,9 +155,9 @@ const submitAssignment = asyncWrapper(async (req, res) => {
 
 const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Fetching unsubmitted assignments`);
   const studentProfile = await student.findStudentById(studentId);
   const group = studentProfile.group;
+  logger.debug(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Fetching unsubmitted assignments`);
 
   // Fetch all assignments for this group
   const allAssignments = await assignment.getAllAssignmentsByGroup(group);
@@ -174,7 +180,7 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
       endDate: assignmentPlain.endDate,
       submitted: 'false'
     }));
-  logger.info(`[student : ${req.student.email}] Unsubmitted assignments fetched, count: ${assignments.length}`);
+  logger.info(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Unsubmitted assignments fetched, count: ${assignments.length}`);
   return res.status(200).json({
     status: "success",
     data: { assignments },
@@ -183,9 +189,9 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
 
 
 const deleteAllAssignmentSubmissionsFunc = asyncWrapper(async (req, res, next) => {
-  logger.debug(`[admin : ${req.admin.email}] Deleting all assignment submissions`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleting all assignment submissions`);
   await submissions.deleteAllAssignmentSubmissions();
-  logger.info(`[admin : ${req.admin.email}] All assignment submissions deleted`);
+  logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] All assignment submissions deleted`);
   return res.status(200).json({
     status: "success",
     data: { message: "All submissions for the assignment deleted successfully" }
@@ -195,9 +201,9 @@ const deleteAllAssignmentSubmissionsFunc = asyncWrapper(async (req, res, next) =
 
 const deleteAssignment = asyncWrapper(async (req, res, next) => {
   const { assignId } = req.params;
-  logger.debug(`[admin : ${req.admin.email}] Deleting assignment: ${assignId}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleting assignment: ${assignId}`);
   await assignment.findAssignmentAndDelete(assignId);
-  logger.info(`[admin : ${req.admin.email}] Assignment deleted: ${assignId}`);
+  logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignment deleted: ${assignId}`);
   return res.status(200).json({
     status: "success",
     data: { message: "Assignment deleted successfully" }
@@ -208,16 +214,16 @@ const modifyAssignment = asyncWrapper(async (req, res, next) => {
   sanitizeInput(req.body);
   const { assignId } = req.params;
   const { title, description } = req.body;
-  logger.debug(`[admin : ${req.admin.email}] Modifying assignment: ${assignId}, title: ${title}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Modifying assignment: ${assignId}, title: ${title}`);
   const modidfied = await Assignment.update(
     { title, description },
     { where: { assignId } }
   );
   if (modidfied[0] === 0) {
-    logger.info(`[admin : ${req.admin.email}] No changes made for assignment: ${assignId}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No changes made for assignment: ${assignId}`);
     return next(new AppError("No changes made or assignment not found", httpStatus.NOT_FOUND));
   }
-  logger.info(`[admin : ${req.admin.email}] Assignment modified successfully: ${assignId}`);
+  logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignment modified successfully: ${assignId}`);
   return res.status(200).json({
     status: "success",
     data: { message: "Assignment modified successfully" }

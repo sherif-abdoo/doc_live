@@ -18,33 +18,37 @@ const logger = require('../utils/logger')
 const checkSemester = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { semester } = req.body;
-    logger.debug(`[admin : ${req.admin.email}] Validating semester: ${semester}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Validating semester: ${semester}`);
     const toLow = semester.toLowerCase();
     if (toLow !== "jun" && toLow !== "nov") {
-        logger.info(`[admin : ${req.admin.email}] Invalid semester: ${semester}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Invalid semester: ${semester}`);
         return next(new AppError("Semester must be either 'Jun' or 'Nov'", httpStatus.BAD_REQUEST));
     }
-    logger.debug(`[admin : ${req.admin.email}] Semester valid: ${semester}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Semester valid: ${semester}`);
     next();
 });
 
 const checkSubject = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { subject } = req.body;
-    logger.debug(`[admin : ${req.admin.email}] Validating subject: ${subject}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Validating subject: ${subject}`);
     const toLow = subject.toLowerCase();
     if (toLow !== "biology" && toLow !== "physics" && toLow !== "chemistry") {
-        logger.info(`[admin : ${req.admin.email}] Invalid subject: ${subject}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Invalid subject: ${subject}`);
         return next(new AppError("Subject must be either 'Biology', 'Physics' or 'Chemistry'", httpStatus.BAD_REQUEST));
     }
-    logger.debug(`[admin : ${req.admin.email}] Subject valid: ${subject}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Subject valid: ${subject}`);
     next();
 });
 
 const findTopicById = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { topicId } = req.params;
-    const requester = req.admin ? `[admin : ${req.admin.email}]` : req.user ? `[user : ${req.user.email}]` : `[system]`;
+    const requester = req.admin
+        ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+        : req.user
+            ? `[user : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+            : `[system]`;
     logger.debug(`${requester} Looking up topic: ${topicId}`);
     const found = await topic.getTopicById(topicId);
     if (!found) {
@@ -52,21 +56,21 @@ const findTopicById = asyncWrapper(async (req, res, next) => {
         return next(new AppError("Topic not found", httpStatus.NOT_FOUND));
     }
     req.found = found;
-    logger.debug(`${requester} Topic found: ${found.id}`);
+    logger.debug(`${requester} Topic found: ${found.topicId}`);
     next();
 })
 
 const canSeeTopic = asyncWrapper(async (req, res, next) => {
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    const requester = `[user : ${req.user.email}]`;
-    logger.debug(`${requester} Checking view permission for topic: ${found.id}`);
+    const requester = `[user : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
+    logger.debug(`${requester} Checking view permission for topic: ${found.topicId}`);
 
     if (req.user.group !== adminf.group && req.user.group !== "all" && adminf.group !== "all") {
-        logger.info(`${requester} View permission denied - user group: ${req.user.group}, publisher group: ${adminf.group}, topic: ${found.id}`);
+        logger.info(`${requester} View permission denied - user group: ${req.user.group}, publisher group: ${adminf.group}, topic: ${found.topicId}`);
         return next(new AppError("You do not have permission to view this topic", httpStatus.FORBIDDEN));
     }
-    logger.debug(`${requester} View permission granted for topic: ${found.id}`);
+    logger.debug(`${requester} View permission granted for topic: ${found.topicId}`);
     next();
 });
 
@@ -74,23 +78,23 @@ const canUpdateTopic = asyncWrapper(async (req, res, next) => {
     const group = req.admin.group;
     const found = req.found;
     const adminf = await admin.getAdminById(found.publisher);
-    logger.debug(`[admin : ${req.admin.email}] Checking update permission for topic: ${found.id}, admin group: ${group}, publisher group: ${adminf.group}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking update permission for topic: ${found.topicId}, admin group: ${group}, publisher group: ${adminf.group}`);
     if (group !== adminf.group && group !== "all") {
-        logger.info(`[admin : ${req.admin.email}] Update permission denied - admin group: ${group}, publisher group: ${adminf.group}, topic: ${found.id}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Update permission denied - admin group: ${group}, publisher group: ${adminf.group}, topic: ${found.topicId}`);
         return next(new AppError("You do not have permission to update this topic", httpStatus.FORBIDDEN));
     }
-    logger.debug(`[admin : ${req.admin.email}] Update permission granted for topic: ${found.id}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Update permission granted for topic: ${found.topicId}`);
     next();
 })
 
 const checkData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { semester, subject } = req.body;
-    logger.debug(`[admin : ${req.admin.email}] Validating update data: semester=${semester}, subject=${subject}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Validating update data: semester=${semester}, subject=${subject}`);
     if (semester) {
         const toLow = semester.toLowerCase();
         if (toLow !== "jun" && toLow !== "nov") {
-            logger.info(`[admin : ${req.admin.email}] Invalid semester: ${semester}`);
+            logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Invalid semester: ${semester}`);
             return next(new AppError("Semester must be either 'Jun' or 'Nov'", httpStatus.BAD_REQUEST));
         }
     }
@@ -98,11 +102,11 @@ const checkData = asyncWrapper(async (req, res, next) => {
     if (subject) {
         const toLow = subject.toLowerCase();
         if (toLow !== "biology" && toLow !== "physics" && toLow !== "chemistry") {
-            logger.info(`[admin : ${req.admin.email}] Invalid subject: ${subject}`);
+            logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Invalid subject: ${subject}`);
             return next(new AppError("Subject must be either 'Biology', 'Physics' or 'Chemistry'", httpStatus.BAD_REQUEST));
         }
     }
-    logger.debug(`[admin : ${req.admin.email}] Update data valid`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Update data valid`);
     next();
 });
 

@@ -23,8 +23,8 @@ const createQuiz = asyncWrapper(async (req, res) => {
     const publisher = req.admin.id;
     const nmark = parseFloat(mark);
     const ndurationInMin = parseInt(durationInMin);
-    logger.debug(`[admin : ${req.admin.email}] publisher id: ${publisher}`);
-    logger.info(`[admin : ${req.admin.email}] Creating quiz: ${title}, mark: ${nmark}, semester: ${semester}, duration: ${ndurationInMin}min`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] publisher id: ${publisher}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating quiz: ${title}, mark: ${nmark}, semester: ${semester}, duration: ${ndurationInMin}min`);
     const newQuiz = await quiz.createQuiz(nmark, publisher, date, semester, ndurationInMin, topicId, title);
     return res.status(201).json({
         status: "success",
@@ -35,26 +35,22 @@ const createQuiz = asyncWrapper(async (req, res) => {
 
 const getAllQuizzes = asyncWrapper(async (req, res) => {
     const group = req.user.group;
-    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    const requester = req.user.type === 'student'
+        ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+        : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Fetching all quizzes for group: ${group}`);
 
-    // Get all quizzes based on group
     const quizzes = await quiz.getAllQuizzes();
     const quizzesWithSubmission = [];
     if (req.user.type === "student" || req.user.type === "assistant") {
-
-
         for (const q of quizzes) {
             logger.debug(`${requester} Checking submission for studentId: ${req.user.id}, quizId: ${q.quizId}`);
             const submitted = await submission.getSubmissionForQuiz(req.user.id, q.quizId);
-
-            // Convert to plain object and add submitted property
             quizzesWithSubmission.push({
-                ...q.toJSON(), // or q.get({ plain: true }) or q.dataValues
+                ...q.toJSON(),
                 submitted: !!submitted
             });
         }
-
     }
 
     const data = req.user.type === "student" ? quizzesWithSubmission : quizzes;
@@ -72,7 +68,7 @@ const getQuizById = asyncWrapper(async (req, res, next) => {
     const quizData = req.quizData;
     const submitteed = await submission.getSubmissionForQuiz(req.user.id, quizData.quizId);
     const quizWithSubmission = {
-        ...quizData.toJSON(), // or quizData.get({ plain: true }) or quizData.dataValues
+        ...quizData.toJSON(),
         submitted: !!submitteed
     };
     return res.status(200).json({
@@ -87,21 +83,17 @@ const startQuiz = asyncWrapper(async (req, res) => {
     const { quizId } = req.params;
     const adminGroup = req.admin.group;
 
-    // update quiz date to now
     await quiz.updateQuizDates(quizId, new Date());
 
     const quizData = await quiz.getQuizById(quizId);
 
-    // cache key based on group
     const cacheKey = `activeQuiz:${adminGroup}`;
 
-    // store quiz in cache
     setCache(cacheKey, quizData, (quizData.durationInMin * 60) + 600);
 
     sse.notifyStudents(adminGroup, {
         event: "quiz_start",
         message: `Quiz to group ${adminGroup} is gonna start now. Please check your dashboard.`,
-
     });
 
     return res.status(200).json({
@@ -112,7 +104,6 @@ const startQuiz = asyncWrapper(async (req, res) => {
         }
     });
 });
-
 
 
 const getActiveQuiz = asyncWrapper(async (req, res, next) => {
@@ -149,9 +140,8 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
     const found = await student.findStudentById(studentId);
     const { quizId } = req.params;
     if (req.submitted === "false") {
-        logger.info(`[student : ${req.user.email}] Creating new submission for quiz: ${quizId}`);
+        logger.info(`[student : ${req.user.email} | ${req.user.name} | ${req.user.group}] Creating new submission for quiz: ${quizId}`);
         const newSub = await quiz.createSubmission(quizId, studentId, found.assistantId, answers, found.semester);
-
         return res.status(200).json({
             status: "success",
             data: {
@@ -159,11 +149,8 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
                 id: newSub.id
             }
         });
-    }
-    else {
-        // Same fix as the branch above: this chain has `req.user`, not
-        // `req.student`. A re-submit crashed here before saving the new answers.
-        logger.info(`[student : ${req.user.email}] Resubmitting quiz: ${quizId}`);
+    } else {
+        logger.info(`[student : ${req.user.email} | ${req.user.name} | ${req.user.group}] Resubmitting quiz: ${quizId}`);
         const submission = await quiz.findSubmissionByQuizAndStudent(quizId, studentId);
         submission.answers = answers;
         submission.subDate = new Date();
@@ -176,8 +163,6 @@ const submitQuiz = asyncWrapper(async (req, res, next) => {
             }
         });
     }
-
-
 });
 
 const modifyQuiz = asyncWrapper(async (req, res, next) => {

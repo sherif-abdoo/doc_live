@@ -10,23 +10,24 @@ const logger = require('../utils/logger');
 const findAdmin = asyncWrapper(async (req, res, next) => {
   sanitizeInput(req.params);
   const { email } = req.params;
+  logger.debug(`[system] Looking up assistant by email: ${email}`);
   const assistant = await admin.findAdminByEmail(email);
   if (!assistant) {
+    logger.info(`[system] Assistant not found: ${email}`);
     return next(new AppError('Admin not found', 404));
   }
   req.assistant = assistant;
-  logger.debug("admin found") // attach found admin for later use
+  logger.debug(`[system] Assistant found: ${email}, name: ${assistant.name}, group: ${assistant.group}`);
   next();
 });
 
-
-
 const checkRole = asyncWrapper(async (req, res, next) => {
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking DOK role authorization, adminId: ${req.admin.id}`);
   if (req.admin.id !== 1) {
-    logger.debug(`admin ${req.admin.id} is not authorized for this action`)
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] DOK authorization denied - not superadmin`);
     return next(new AppError('You are not authorized to perform this action', 403));
   }
-  logger.debug("checkRole passed");
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] DOK authorization granted`);
   next();
 });
 

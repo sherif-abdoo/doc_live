@@ -17,7 +17,11 @@ const logger = require('../utils/logger')
 const sessionFound = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { sessionId } = req.params;
-    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    const requester = req.user
+        ? `[user : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+        : req.admin
+            ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+            : `[student : ${req.student.email} | ${req.student.name} | ${req.student.group}]`;
     logger.debug(`${requester} Looking up session: ${sessionId}`);
     const sessFound = await session.findSessionById(sessionId);
     if (!sessFound) {
@@ -31,7 +35,11 @@ const sessionFound = asyncWrapper(async (req, res, next) => {
 
 const sessionStarted = asyncWrapper(async (req, res, next) => {
     const sessFound = req.activeSession;
-    const requester = req.user ? `[user : ${req.user.email}]` : req.student ? `[student : ${req.student.email}]` : '[unknown]';
+    const requester = req.user
+        ? `[user : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+        : req.student
+            ? `[student : ${req.student.email} | ${req.student.name} | ${req.student.group}]`
+            : '[unknown]';
     logger.debug(`${requester} Checking if session is active`);
     if (!sessFound || !sessFound.dateAndTime) {
         logger.info(`${requester} Session not started yet`);
@@ -63,34 +71,36 @@ const canAccessSession = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const userGroup = req.admin.group;
     const sessionData = req.sessionData;
-    logger.debug(`[admin : ${req.admin.email}] Checking access permission for session: ${sessionData.sessionId}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking access permission for session: ${sessionData.sessionId}`);
     if (sessionData.group !== 'all' && sessionData.group !== userGroup && userGroup !== 'all') {
-        logger.info(`[admin : ${req.admin.email}] Access denied - session group: ${sessionData.group}, admin group: ${userGroup}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Access denied - session group: ${sessionData.group}, admin group: ${userGroup}`);
         return next(new AppError("You do not have permission to access this session", httpStatus.FORBIDDEN));
     }
-    logger.debug(`[admin : ${req.admin.email}] Access granted for session: ${sessionData.sessionId}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Access granted for session: ${sessionData.sessionId}`);
     next();
 });
 
 const canAccessActiveSession = asyncWrapper(async (req, res, next) => {
     const userGroup = req.student.group;
-    logger.debug(`[student : ${req.student.email}] Checking for active session in group: ${userGroup}`);
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Checking for active session in group: ${userGroup}`);
     let activeSession = await getCache(`activeSession:${userGroup}`);
     if (!activeSession) {
         activeSession = await getCache("activeSession:all");
     }
     if (!activeSession) {
-        logger.info(`[student : ${req.student.email}] No active session found for group: ${userGroup}`);
+        logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] No active session found for group: ${userGroup}`);
         return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
     }
-    logger.debug(`[student : ${req.student.email}] Active session found: ${activeSession.sessionId}`);
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Active session found: ${activeSession.sessionId}`);
     req.activeSession = activeSession;
     next();
 });
 
 const activeSessionExists = asyncWrapper(async (req, res, next) => {
     const userGroup = req.user.group;
-    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[admin : ${req.user.email}]`;
+    const requester = req.user.type === 'student'
+        ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+        : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Checking for active session in group: ${userGroup}`);
     let activeSession = await session.getActiveSessionByAGroup(userGroup);
     if (!activeSession) {
@@ -107,33 +117,16 @@ const activeSessionExists = asyncWrapper(async (req, res, next) => {
 
 const upcomingSession = asyncWrapper(async (req, res, next) => {
     const { group } = req.student;
-    logger.debug(`[student : ${req.student.email}] Fetching upcoming session for group: ${group}`);
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Fetching upcoming session for group: ${group}`);
     const upcomingSession = await session.findAllUpcomingSessionByGroup(group);
     if (!upcomingSession) {
-        logger.info(`[student : ${req.student.email}] No upcoming session found for group: ${group}`);
+        logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] No upcoming session found for group: ${group}`);
         return next(new AppError("No upcoming session found for your group", httpStatus.NOT_FOUND));
     }
-    logger.debug(`[student : ${req.student.email}] Upcoming session found`);
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Upcoming session found`);
     req.upcomingSession = upcomingSession;
     next();
 });
-
-/*
-const preventMultipleActiveSessions = asyncWrapper(async (req, res, next) => {
-  const adminGroup = req.admin.group;
-  // Check for an unfinished session within last 2.5 hours
-  const AnExistingSession = await session.existingSession(adminGroup);
-  if (AnExistingSession) {
-    return next(
-      new AppError(
-        "A session is already active for this group. You cannot start another one until it finishes or expires.",
-        httpStatus.BAD_REQUEST
-      )
-    );
-  }
-  next();
-});
-*/
 
 module.exports = {
     sessionFound,
@@ -142,5 +135,4 @@ module.exports = {
     canAccessActiveSession,
     activeSessionExists,
     upcomingSession,
-    //preventMultipleActiveSessions
 }

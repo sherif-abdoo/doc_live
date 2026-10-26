@@ -23,9 +23,9 @@ const createTopic = asyncWrapper(async (req, res) => {
     const { topicName, semester, subject } = req.body;
     const publisher = req.admin.id;
     const group = req.admin.group;
-    logger.debug(`[admin : ${req.admin.email}] Creating topic - name: ${topicName}, subject: ${subject}, semester: ${semester}, group: ${group}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating topic - name: ${topicName}, subject: ${subject}, semester: ${semester}, group: ${group}`);
     const newTopic = await topic.createTopic(topicName, semester, publisher, subject, group);
-    logger.info(`[admin : ${req.admin.email}] Topic created successfully, topicId: ${newTopic.topicId}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic created successfully, topicId: ${newTopic.topicId}`);
     return res.status(201).json({
         status: "success",
         message: "Topic created successfully",
@@ -42,7 +42,11 @@ const createTopic = asyncWrapper(async (req, res) => {
 const getTopicById = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const { topicId } = req.params;
-    const requester = req.user ? `[user : ${req.user.email}]` : req.admin ? `[admin : ${req.admin.email}]` : `[student : ${req.student.email}]`;
+    const requester = req.user
+        ? `[user : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+        : req.admin
+            ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+            : `[student : ${req.student.email} | ${req.student.name} | ${req.student.group}]`;
     logger.debug(`${requester} Fetching topic by id: ${topicId}`);
     const topicFound = await topic.getTopicById(topicId);
     const quizzes = (await quiz.getQuizzesByTopicId(topicId))
@@ -90,7 +94,9 @@ const getTopicById = asyncWrapper(async (req, res, next) => {
 
 const getAllTopics = asyncWrapper(async (req, res, next) => {
     const group = req.user.group;
-    const requester = req.user.type === 'student' ? `[student : ${req.user.email}]` : `[user : ${req.user.email}]`;
+    const requester = req.user.type === 'student'
+        ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
+        : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Fetching all topics for group: ${group}`);
     let topics = (group === 'all') ?
         await topic.getAllTopics() :
@@ -110,12 +116,12 @@ const updateTopic = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const found = req.found;
     const { topicName, semester, subject } = req.body;
-    logger.debug(`[admin : ${req.admin.email}] Updating topic: ${found.topicId}, new name: ${topicName}, semester: ${semester}, subject: ${subject}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Updating topic: ${found.topicId}, new name: ${topicName}, semester: ${semester}, subject: ${subject}`);
     found.topicName = topicName || found.topicName;
     found.semester = semester || found.semester;
     found.subject = subject || found.subject;
     await found.save();
-    logger.info(`[admin : ${req.admin.email}] Topic updated successfully, topicId: ${found.topicId}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic updated successfully, topicId: ${found.topicId}`);
     res.status(200).json({
         status: "success",
         message: `topic ${topicName} updated successfully `,
@@ -132,12 +138,12 @@ const updateTopic = asyncWrapper(async (req, res, next) => {
 
 const deleteTopic = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    logger.debug(`[admin : ${req.admin.email}] Deleting topic: ${found.topicId} - ${found.topicName}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleting topic: ${found.topicId} - ${found.topicName}`);
     await Session.destroy({
         where: { topicId: found.topicId }
     });
     await found.destroy();
-    logger.info(`[admin : ${req.admin.email}] Topic deleted successfully, topicId: ${found.topicId}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic deleted successfully, topicId: ${found.topicId}`);
     res.status(200).json({
         status: "success",
         message: `topic with id: ${req.params.topicId} is deleted`

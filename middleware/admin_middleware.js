@@ -35,22 +35,22 @@ const adminFound = asyncWrapper(async (req, res, next) => {
 
 const studentFound = asyncWrapper(async (req, res, next) => {
   const { studentEmail } = req.params;
-  logger.debug(`[admin : ${req.admin.email}] Looking up student: ${studentEmail}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Looking up student: ${studentEmail}`);
   const found = await student.findStudentByEmail(studentEmail);
   if (!found) {
-    logger.info(`[admin : ${req.admin.email}] Student not found: ${studentEmail}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Student not found: ${studentEmail}`);
     return next(new AppError('student not found', 404));
   }
   if (found.group !== req.admin.group) {
-    logger.info(`[admin : ${req.admin.email}] Unauthorized access to student: ${studentEmail}, student group: ${found.group}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Unauthorized access to student: ${studentEmail}, student group: ${found.group}`);
     return next(new AppError('You are not allowed to access this student', 403));
   }
   if (found.verified) {
-    logger.info(`[admin : ${req.admin.email}] Student already verified: ${studentEmail}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Student already verified: ${studentEmail}`);
     return next(new AppError('Student already verified', 400));
   }
   req.student = found;
-  logger.debug(`[admin : ${req.admin.email}] Student found: ${studentEmail}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Student found: ${studentEmail}`);
   next();
 });
 
@@ -64,18 +64,18 @@ const passwordEncryption = asyncWrapper(async (req, res, next) => {
 
 const checkAuthurity = asyncWrapper(async (req, res, next) => {
   const { studentEmail } = req.params;
-  logger.debug(`[admin : ${req.admin.email}] Checking authority over student: ${studentEmail}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking authority over student: ${studentEmail}`);
   const found = await student.findStudentByEmail(studentEmail);
   if (!found) {
-    logger.info(`[admin : ${req.admin.email}] Student not found: ${studentEmail}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Student not found: ${studentEmail}`);
     return next(new AppError('student not found', 404));
   }
   if (String(found.assistantId) !== String(req.admin.id) && req.admin.id !== 1) {
-    logger.info(`[admin : ${req.admin.email}] Unauthorized - student assistantId: ${found.assistantId}, admin id: ${req.admin.id}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Unauthorized - student assistantId: ${found.assistantId}, admin id: ${req.admin.id}`);
     return next(new AppError('You are not allowed to access this student', 403));
   }
   req.student = found;
-  logger.debug(`[admin : ${req.admin.email}] Authority confirmed for student: ${studentEmail}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Authority confirmed for student: ${studentEmail}`);
   next();
 });
 
@@ -100,35 +100,34 @@ const adminPhoneNumberExists = asyncWrapper(async (req, res, next) => {
 
 const checkAuthurityByID = asyncWrapper(async (req, res, next) => {
   const { studentId } = req.params;
-  logger.debug(`[admin : ${req.admin.email}] Checking authority over studentId: ${studentId}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking authority over studentId: ${studentId}`);
   const found = await student.findStudentById(studentId);
   if (!found) {
-    logger.info(`[admin : ${req.admin.email}] Student not found, id: ${studentId}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Student not found, id: ${studentId}`);
     return next(new AppError('student not found', 404));
   }
   if (String(found.assistantId) !== String(req.admin.id) && req.admin.id !== 1) {
-    logger.info(`[admin : ${req.admin.email}] Unauthorized - student assistantId: ${found.assistantId}, admin id: ${req.admin.id}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Unauthorized - student assistantId: ${found.assistantId}, admin id: ${req.admin.id}`);
     return next(new AppError('You are not allowed to access this student', 403));
   }
   req.student = found;
   req.student.id = studentId;
-  logger.debug(`[admin : ${req.admin.email}] Authority confirmed for studentId: ${studentId}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Authority confirmed for studentId: ${studentId}`);
   next();
 });
 
 const canReject = asyncWrapper(async (req, res, next) => {
   const { studentEmail } = req.params;
   const adminId = req.admin.id;
-  logger.debug(`[admin : ${req.admin.email}] Checking if can reject student: ${studentEmail}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking if can reject student: ${studentEmail}`);
   const reg = await regection.findByEmailAndId(studentEmail, adminId);
   if (reg) {
-    logger.info(`[admin : ${req.admin.email}] Already rejected student: ${studentEmail}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Already rejected student: ${studentEmail}`);
     return next(new AppError('Can not reject student twice', 404));
   }
-  logger.debug(`[admin : ${req.admin.email}] Can reject check passed for student: ${studentEmail}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Can reject check passed for student: ${studentEmail}`);
   next();
 });
-
 
 
 module.exports = {
