@@ -37,7 +37,7 @@ const logIn = asyncWrapper(async (req, res, next) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRATION }
     );
-    logger.info("Admin logged in:", adminUser.email);
+    logger.info(`Admin logged in: ${adminUser.email}, name: ${adminUser.name}, group: ${adminUser.group}`);
 
     return res.status(200).json({
       status: "success",
@@ -80,7 +80,7 @@ const logIn = asyncWrapper(async (req, res, next) => {
       { expiresIn: process.env.JWT_EXPIRATION }
     );
 
-    logger.info("Student logged in:", studentUser.studentEmail);
+    logger.info(`Student logged in: ${studentUser.studentEmail}, name: ${studentUser.studentName}, group: ${studentUser.group}`);
 
     return res.status(200).json({
       status: "success",

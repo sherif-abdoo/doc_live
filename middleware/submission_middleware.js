@@ -14,7 +14,11 @@ const logger = require('../utils/logger.js');
 const subExist = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.params);
     const subId = req.params.id;
-    const requester = req.admin ? `[admin : ${req.admin.email}]` : req.student ? `[student : ${req.student.email}]` : `[system]`;
+    const requester = req.admin
+        ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+        : req.student
+            ? `[student : ${req.student.email} | ${req.student.name} | ${req.student.group}]`
+            : `[system]`;
     logger.debug(`${requester} Looking up submission: ${subId}`);
     const found = await admin.findSubmissionById(subId)
     if (!found) {
@@ -28,37 +32,41 @@ const subExist = asyncWrapper(async (req, res, next) => {
 
 const canSeeSubmission = asyncWrapper(async (req, res, next) => {
     const sub = req.found;
-    logger.debug(`[admin : ${req.admin.email}] Checking view permission for submission: ${sub.id}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking view permission for submission: ${sub.id}`);
     const subAdmin = await admin.findAdminById(sub.assistantId)
     const adminId = req.admin.id;
     const subStudent = await student.findStudentById(sub.studentId);
     if (!adminId) {
-        logger.info(`[admin : ${req.admin.email}] Admin not found`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Admin not found`);
         return next(new AppError("Admin not found", httpStatus.NOT_FOUND))
     }
-    logger.debug(`[admin : ${req.admin.email}] AdminId: ${adminId}, subAdmin group: ${subAdmin.group}, admin group: ${req.admin.group}, subStudent group: ${subStudent.group}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] AdminId: ${adminId}, subAdmin group: ${subAdmin.group}, admin group: ${req.admin.group}, subStudent group: ${subStudent.group}`);
     if (sub.assistantId !== adminId && adminId !== 1 && subAdmin.group !== req.admin.group && subStudent.group !== req.admin.group) {
-        logger.info(`[admin : ${req.admin.email}] View permission denied - submission: ${sub.id}, submission assistantId: ${sub.assistantId}, adminId: ${adminId}, subAdmin group: ${subAdmin.group}, subStudent group: ${subStudent.group}, admin group: ${req.admin.group}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] View permission denied - submission: ${sub.id}, submission assistantId: ${sub.assistantId}, adminId: ${adminId}, subAdmin group: ${subAdmin.group}, subStudent group: ${subStudent.group}, admin group: ${req.admin.group}`);
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
-    logger.debug(`[admin : ${req.admin.email}] View permission granted for submission: ${sub.id}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] View permission granted for submission: ${sub.id}`);
     next();
 })
 
 const marked = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    logger.debug(`[admin : ${req.admin.email}] Checking if submission is marked: ${found.id}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Checking if submission is marked: ${found.id}`);
     if (found.marked) {
-        logger.info(`[admin : ${req.admin.email}] Submission already marked: ${found.id}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Submission already marked: ${found.id}`);
         return next(new AppError("Submission already marked", httpStatus.FORBIDDEN));
     }
-    logger.debug(`[admin : ${req.admin.email}] Submission is not marked: ${found.id}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Submission is not marked: ${found.id}`);
     next();
 })
 
 const subMarked = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    const requester = req.admin ? `[admin : ${req.admin.email}]` : req.student ? `[student : ${req.student.email}]` : `[system]`;
+    const requester = req.admin
+        ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+        : req.student
+            ? `[student : ${req.student.email} | ${req.student.name} | ${req.student.group}]`
+            : `[system]`;
     logger.debug(`${requester} Checking if submission is marked: ${found.id}`);
     if (!found.marked) {
         logger.info(`${requester} Submission not marked yet: ${found.id}`);
@@ -68,49 +76,30 @@ const subMarked = asyncWrapper(async (req, res, next) => {
     next();
 })
 
-
 const checkData = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { marked, score } = req.body
     const found = req.found;
-    logger.debug(`[admin : ${req.admin.email}] Validating mark data for submission: ${found.id}`);
-    /* if (req.found.score) {
-         logger.debug(`[admin : ${req.admin.email}] Not first mark for submission: ${found.id}`);
-         next();
-         return;
-     }*/
-    const nscore = Number(score); // Convert score to a number
-    /*if (!marked || !score) {
-        logger.info(`[admin : ${req.admin.email}] Missing required fields for submission: ${found.id}`);
-        return next(new AppError("All fields are required", httpStatus.BAD_REQUEST));
-    }*/
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Validating mark data for submission: ${found.id}`);
+    const nscore = Number(score);
     let total;
     if (found.type === "quiz") {
         const qfound = await quiz.getQuizById(found.quizId);
         total = qfound.mark
-    }
-    else {
+    } else {
         const afound = await assignment.getAssignmentById(found.assId);
         total = afound.mark
     }
-    logger.debug(`[admin : ${req.admin.email}] All fields checked for submission: ${found.id}, total: ${total}`);
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] All fields checked for submission: ${found.id}, total: ${total}`);
 
-    /*const pdfRegex = /^https?:\/\/.+\.pdf$/i;
-    if (typeof marked !== 'string' || !pdfRegex.test(marked.trim())) {
-        logger.info(`[admin : ${req.admin.email}] Invalid marked PDF link for submission: ${found.id}`);
-        return next(new AppError("marked PDF must be a valid link ending with .pdf", httpStatus.BAD_REQUEST));
-    }
-    logger.debug(`[admin : ${req.admin.email}] Marked PDF link valid for submission: ${found.id}`)
-*/
     if (typeof nscore !== 'number' || nscore <= 0 || nscore > total) {
-        logger.info(`[admin : ${req.admin.email}] Invalid score: ${score} (total: ${total}) for submission: ${found.id}`);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Invalid score: ${score} (total: ${total}) for submission: ${found.id}`);
         return next(new AppError("Score must be a positive number and less than the total score", httpStatus.BAD_REQUEST));
     }
-    logger.debug(`[admin : ${req.admin.email}] Score valid for submission: ${found.id}`)
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Score valid for submission: ${found.id}`)
 
     next();
 })
-
 
 
 module.exports = {

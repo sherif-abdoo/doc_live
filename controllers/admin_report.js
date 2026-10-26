@@ -25,53 +25,63 @@ const getGradingSystem = () => {
 };
 
 const createReport = async (req, res) => {
-  // try {
   sanitizeInput(req.params);
   const { topicId } = req.params;
 
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Requesting report for topicId: ${topicId}`);
+
   // 🔒 Authorization
   if (!req.admin || req.admin.type !== 'admin') {
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Access denied - not an assistant`);
     return res.status(403).json({ error: 'Access denied. Assistants only.' });
   }
 
   const assistantId = req.admin.id;
 
-  // 🔍 Validate topic exists and belongs to this assistant
+  // 🔍 Validate topic
   const topic = await topicDl.getTopicById(topicId);
   if (!topic) {
-    return res.status(404).json({
-      error: 'Topic not found or not owned by this assistant.'
-    });
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic not found: ${topicId}`);
+    return res.status(404).json({ error: 'Topic not found or not owned by this assistant.' });
   }
   if (topic.group !== req.admin.group && req.admin.group !== 'all' && topic.group !== 'all') {
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Unauthorized access to topic: ${topicId}, topic group: ${topic.group}`);
     return res.status(403).json({ error: 'You are not authorized to access this topic.' });
   }
+
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic found: ${topic.topicName}, group: ${topic.group}`);
+
   const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Total sessions for topic: ${topicSessions}`);
+
+  // 👥 Get students
   let students = [];
-  // 👥 Get all students assigned to this assistant
   if (req.admin.group === 'all') {
     students = await Student.findAll({});
-  }
-  else {
+  } else {
     students = await student.getStudentsByAssistant(assistantId);
   }
-  // Fetch assignments WITH title
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Students loaded: ${students.length}`);
+
+  // Fetch assignments
   const assignments = await Assignment.findAll({
     where: { topicId: topic.topicId },
-    attributes: ['assignId', 'title', 'mark'] // ✅ ADDED 'title'
+    attributes: ['assignId', 'title', 'mark']
   });
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignments for topic: ${assignments.length}`);
 
   const quizzes = await Quiz.findOne({
     where: { topicId: topic.topicId },
     attributes: ['quizId', 'mark', 'title']
   });
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Quiz found: ${quizzes ? quizzes.title : 'none'}`);
 
-  // ✅ Use 0 instead of null
   const quizTotalScore = quizzes?.mark ?? 0;
   const numberOfAssignments = assignments.length;
 
   const studentIds = students.map(s => s.studentId);
-  // 📤 Build submission query conditions
+
+  // 📤 Build submission query
   let submissionConditions = [];
   const assignmentIds = assignments.map(a => a.assignId);
   if (assignmentIds.length > 0) {
@@ -96,21 +106,21 @@ const createReport = async (req, res) => {
       attributes: ['studentId', 'type', 'assId', 'quizId', 'score']
     });
   }
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Submissions loaded: ${submissions.length}`);
 
-
-  // 🗂️ Create a lookup map for O(1) access
-  const submissionsMap = {}; submissions.forEach(sub => {
+  // 🗂️ Build lookup map
+  const submissionsMap = {};
+  submissions.forEach(sub => {
     if (sub.type === 'assignment') {
       submissionsMap[`A-${sub.studentId}-${sub.assId}`] = sub.score;
     } else if (sub.type === 'quiz') {
-      submissionsMap[`Q-${sub.studentId}`] = sub.score; // only one quiz
+      submissionsMap[`Q-${sub.studentId}`] = sub.score;
     }
   });
 
   const grading = getGradingSystem();
 
   const studentReports = await Promise.all(students.map(async (st) => {
-    // 🔹 Quiz data
     const quizScore = submissionsMap[`Q-${st.studentId}`];
     let percentage = 'missing';
     let grade = 'missing';
@@ -124,9 +134,7 @@ const createReport = async (req, res) => {
     const assignmentList = assignments.map(ass => ({
       id: ass.assignId,
       title: ass.title,
-      status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null
-        ? "done"
-        : "missing"
+      status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null ? "done" : "missing"
     }));
 
     return {
@@ -142,8 +150,8 @@ const createReport = async (req, res) => {
     };
   }));
 
+  logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Report generated for topic: ${topic.topicName}, students: ${studentReports.length}`);
 
-  // 📤 Final response
   return res.json({
     topicId: topic.topicId,
     topicName: topic.topicName,
@@ -153,11 +161,6 @@ const createReport = async (req, res) => {
     totalSession: topicSessions,
     students: studentReports
   });
-
-  // } catch (error) {
-  //   logger.error('Report generation error:', error);
-  //   return res.status(500).json({ error: 'Failed to generate report.' });
-  // }
 };
 
 module.exports = { createReport };

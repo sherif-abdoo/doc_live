@@ -35,7 +35,7 @@ const studentRegister = asyncWrapper(async (req, res) => {
     semester
   } = req.body;
   const groupl = group.toLowerCase();
-  logger.debug(`[student : ${studentEmail}] Registering student: ${studentName}, group: ${groupl}, semester: ${semester}`);
+  logger.debug(`[student : ${studentEmail} | ${studentName} | ${groupl}] Registering student, semester: ${semester}`);
   await student.createStudent(
     studentName,
     studentEmail,
@@ -55,7 +55,7 @@ const studentRegister = asyncWrapper(async (req, res) => {
     Student: { id: Student.studentId, studentName, studentEmail, group }
   });
 
-  logger.info(`[student : ${studentEmail}] Registered successfully`);
+  logger.info(`[student : ${studentEmail} | ${studentName} | ${groupl}] Registered successfully`);
   return res.status(201).json({
     status: "success",
     data: { message: "Student registered successfully" }
@@ -64,11 +64,11 @@ const studentRegister = asyncWrapper(async (req, res) => {
 
 const showMyAdminProfile = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Fetching admin profile for studentId: ${studentId}`);
   const found = await student.findStudentById(studentId);
+  logger.debug(`[student : ${req.student.email} | ${found.studentName} | ${found.group}] Fetching admin profile for studentId: ${studentId}`);
   const adminId = found.assistantId;
   const adminProfile = await admin.findAdminById(adminId);
-  logger.info(`[student : ${req.student.email}] Admin profile fetched: ${adminProfile.email}`);
+  logger.info(`[student : ${req.student.email} | ${found.studentName} | ${found.group}] Admin profile fetched: ${adminProfile.email}`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -83,9 +83,9 @@ const showMyAdminProfile = asyncWrapper(async (req, res) => {
 
 const showMyProfile = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Fetching profile for studentId: ${studentId}`);
   const studentProfile = await student.findStudentById(studentId);
-  logger.info(`[student : ${req.student.email}] Profile fetched successfully`);
+  logger.debug(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Fetching profile for studentId: ${studentId}`);
+  logger.info(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Profile fetched successfully`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -105,16 +105,16 @@ const showMyProfile = asyncWrapper(async (req, res) => {
 
 const getMyFeed = asyncWrapper(async (req, res, next) => {
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Fetching feed for studentId: ${studentId}`);
   const studentProfile = await student.findStudentById(studentId);
+  logger.debug(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Fetching feed for studentId: ${studentId}`);
   const assistantId = studentProfile.assistantId;
   const semester = studentProfile.semester;
   const feeds = await feed.getFeedByAssistantIdAndSemester(assistantId, semester);
   if (!feeds || feeds.length === 0) {
-    logger.info(`[student : ${req.student.email}] No feed found`);
+    logger.info(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] No feed found`);
     return next(new AppError("No feed found for your assistant", httpStatus.NOT_FOUND));
   }
-  logger.info(`[student : ${req.student.email}] Feed fetched, count: ${feeds.length}`);
+  logger.info(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Feed fetched, count: ${feeds.length}`);
   return res.status(200).json({
     status: "success",
     results: feeds.length,
@@ -124,10 +124,9 @@ const getMyFeed = asyncWrapper(async (req, res, next) => {
 
 const showMySubmission = asyncWrapper(async (req, res) => {
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Fetching submissions for studentId: ${studentId}`);
   const profile = await student.findStudentById(studentId);
+  logger.debug(`[student : ${req.student.email} | ${profile.studentName} | ${profile.group}] Fetching submissions for studentId: ${studentId}`);
 
-  // Set up associations
   if (!Submission.associations.assignment) {
     Submission.belongsTo(Assignment, { foreignKey: 'assId', as: 'assignment' });
   }
@@ -141,7 +140,6 @@ const showMySubmission = asyncWrapper(async (req, res) => {
     Quiz.belongsTo(Topic, { foreignKey: 'topicId', as: 'topic' });
   }
 
-  // Fetch assignment submissions
   const assignmentSubs = await Submission.findAll({
     where: { studentId, type: 'assignment' },
     include: [
@@ -155,7 +153,6 @@ const showMySubmission = asyncWrapper(async (req, res) => {
     order: [['subDate', 'DESC']]
   });
 
-  // Fetch quiz submissions
   const quizSubs = await Submission.findAll({
     where: { studentId, type: 'quiz' },
     include: [
@@ -202,7 +199,7 @@ const showMySubmission = asyncWrapper(async (req, res) => {
 
   enriched.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
-  logger.info(`[student : ${req.student.email}] Submissions fetched, count: ${enriched.length}`);
+  logger.info(`[student : ${req.student.email} | ${profile.studentName} | ${profile.group}] Submissions fetched, count: ${enriched.length}`);
   return res.status(200).json({
     status: "success",
     message: `Submissions for student ${profile.studentName}`,
@@ -232,9 +229,9 @@ const showASubmission = asyncWrapper(async (req, res) => {
 
 const getMarkForSubmission = asyncWrapper(async (req, res) => {
   const found = req.found;
-  logger.debug(`[student : ${req.student.email}] Fetching mark for submissionId: ${found.subId}`);
+  logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Fetching mark for submissionId: ${found.subId}`);
   const taName = await admin.getAdminNameById(found.assistantId);
-  logger.info(`[student : ${req.student.email}] Mark fetched for submissionId: ${found.subId}, score: ${found.score}`);
+  logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Mark fetched for submissionId: ${found.subId}, score: ${found.score}`);
   return res.status(200).json({
     status: "success",
     data: {
@@ -249,17 +246,15 @@ const getMarkForSubmission = asyncWrapper(async (req, res) => {
   })
 });
 
-// Student quiz trend: per-quiz points grouped by week, for line chart
 const getQuizTrend = asyncWrapper(async (req, res) => {
   const { from, to } = req.query;
   const { Op } = require('sequelize');
   const Submission = require('../models/submission_model');
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Fetching quiz trend, from: ${from}, to: ${to}`);
+  logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Fetching quiz trend, from: ${from}, to: ${to}`);
   const fromDate = from ? new Date(from) : null;
   const toDate = to ? new Date(to) : null;
 
-  // get student's group to pull all quizzes for that group
   const me = await student.findStudentById(studentId);
   const allQuizzes = await quizLink.getAllQuizzesForGroup(me.group);
   const quizzes = allQuizzes
@@ -272,22 +267,18 @@ const getQuizTrend = asyncWrapper(async (req, res) => {
   const subs = quizIds.length ? await Submission.findAll({ where: { studentId, type: 'quiz', quizId: { [Op.in]: quizIds } }, raw: true }) : [];
   const subMap = new Map(subs.map(s => [s.quizId, s]));
 
-  // Build one point per quiz; if no submission or score 0 -> percentage 0
-  const points = quizzes
-    .map((q, idx) => {
-      const when = new Date(q.date);
-      const week = idx + 1; // sequential week index based on date order
-      const sub = subMap.get(q.quizId);
-      const score = sub && typeof sub.score === 'number' ? sub.score : 0;
-      const totalMark = typeof q.totalMark === 'number' && q.totalMark > 0 ? q.totalMark : null;
-      return { quizId: q.quizId, date: when, week, score, totalMark: q.totalMark };
-    })
-    ;
+  const points = quizzes.map((q, idx) => {
+    const when = new Date(q.date);
+    const week = idx + 1;
+    const sub = subMap.get(q.quizId);
+    const score = sub && typeof sub.score === 'number' ? sub.score : 0;
+    const totalMark = typeof q.totalMark === 'number' && q.totalMark > 0 ? q.totalMark : null;
+    return { quizId: q.quizId, date: when, week, score, totalMark: q.totalMark };
+  });
 
-  // For chart: y-axis = Week, x-axis= Row grade
   const chartPoints = points.map(p => ({ y: p.week, x: p.score, quizId: p.quizId, date: p.date }));
 
-  logger.info(`[student : ${req.student.email}] Quiz trend fetched, points: ${points.length}`);
+  logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Quiz trend fetched, points: ${points.length}`);
   return res.status(200).json({ status: 'success', data: { points, chartPoints } });
 })
 

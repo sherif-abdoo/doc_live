@@ -24,15 +24,12 @@ const sessionDl = require('../data_link/session_data_link.js');
 const logger = require('../utils/logger')
 
 
-// Helper: normalize null/undefined values to "N/A"
 const normalize = (value) => (value === null || value === undefined ? "N/A" : value);
 
-// Helper function to get student submission for assignment
 const getStudentSubmissionForAssignment = async (studentId, assignmentId) => {
   return await submission.getSubmissionForAssignment(studentId, assignmentId);
 };
 
-// Helper function to get student submission for quiz
 const getStudentSubmissionForQuiz = async (studentId, quizId) => {
   return submission.getSubmissionForQuiz(studentId, quizId);
 };
@@ -41,56 +38,42 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
   sanitizeInput(req.params);
   const { topicId } = req.params;
   const studentId = req.student.id;
-  logger.debug(`[student : ${req.student.email}] Requesting weekly report, topicId: ${topicId || 'latest'}`);
+  logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Requesting weekly report, topicId: ${topicId || 'latest'}`);
 
   try {
-    // Get student data
     const studentData = await student.findStudentById(studentId);
     if (!studentData) {
-      logger.info(`[student : ${req.student.email}] Student not found`);
-      return res.status(404).json({
-        status: "error",
-        message: "Student not found"
-      });
+      logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Student not found`);
+      return res.status(404).json({ status: "error", message: "Student not found" });
     }
 
-    // Get topic details
     let topic;
     if (topicId) {
       topic = await topicDl.getTopicById(topicId);
       if (!topic) {
-        logger.info(`[student : ${req.student.email}] Topic not found: ${topicId}`);
-        return res.status(404).json({
-          status: "error",
-          message: "Topic not found"
-        });
+        logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Topic not found: ${topicId}`);
+        return res.status(404).json({ status: "error", message: "Topic not found" });
       }
       if (topic.group !== studentData.group && topic.group !== "all") {
-        logger.info(`[student : ${req.student.email}] Unauthorized access to topic: ${topicId}`);
-        return res.status(403).json({
-          status: "error",
-          message: "You are not authorized to access this topic"
-        });
+        logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Unauthorized access to topic: ${topicId}`);
+        return res.status(403).json({ status: "error", message: "You are not authorized to access this topic" });
       }
     } else {
       topic = await topicDl.getStudentLastTopic(req.student.group);
     }
 
-    logger.debug(`[student : ${req.student.email}] Topic resolved: ${topic.topicId} - ${topic.topicName}`);
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Topic resolved: ${topic.topicId} - ${topic.topicName}`);
 
     const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
     const attendedSessions = await sessionDl.countAttendedSessionsByTopic(studentId, topic.topicId);
 
-    // Get assignments & quizzes
     const assignments = await assignment.getAssignmentsByTopicId(topic.topicId);
     const quizzes = await quiz.getQuizzesByTopicId(topic.topicId);
-    logger.debug(`[student : ${req.student.email}] Assignments: ${assignments.length}, Quizzes: ${quizzes.length}`);
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Assignments: ${assignments.length}, Quizzes: ${quizzes.length}`);
 
-    // Default quiz grade
     let quizGrade = "N/A";
     let quizData = null;
 
-    // Build base report object
     const reportData = {
       id: topic.topicId,
       topicTitle: topic.topicName,
@@ -110,7 +93,6 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
 
     reportData.sessions = await sessionDl.getSessionsByTopic(topic.topicId, studentId);
 
-    // Process assignments
     for (let index = 0; index < assignments.length; index++) {
       const assignmentItem = assignments[index];
       const submission = await getStudentSubmissionForAssignment(studentId, assignmentItem.assignId);
@@ -145,7 +127,6 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
       });
     }
 
-    // Process quizzes
     for (let index = 0; index < quizzes.length; index++) {
       const quizItem = quizzes[index];
       const submission = await getStudentSubmissionForQuiz(studentId, quizItem.quizId);
@@ -201,14 +182,14 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
     reportData.quizGrade = quizGrade;
     reportData.quizData = quizData;
 
-    logger.info(`[student : ${req.student.email}] Weekly report generated for topic: ${topic.topicId} - ${topic.topicName}`);
+    logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Weekly report generated for topic: ${topic.topicId} - ${topic.topicName}`);
     return res.status(200).json({
       status: "success",
       message: "Weekly report generated successfully",
       data: reportData
     });
   } catch (error) {
-    logger.error(`[student : ${req.student.email}] Error generating weekly report: ${error.message}`);
+    logger.error(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Error generating weekly report: ${error.message}`);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -218,10 +199,6 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
 });
 
 
-
-
-
 module.exports = {
   getMyWeeklyReport
 };
-

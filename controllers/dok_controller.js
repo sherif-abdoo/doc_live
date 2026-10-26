@@ -28,33 +28,32 @@ const logger = require('../utils/logger');
 const DOK_signUp = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const { email, name, password, phoneNumber, role = "teacher", permission = "all" } = req.body;
-
-    // hash password
+    logger.debug(`[system] DOK superadmin signup attempt for email: ${email}, name: ${name}`);
     const encryptedPassword = await bcrypt.hash(String(password), 10);
-
-    // create admin
     await Admin.create({
         adminId: 1,
         email,
         name,
         password: encryptedPassword,
-        phoneNumber: phoneNumber,
-        group: "all", // matches model field
+        phoneNumber,
+        group: "all",
         role,
         permission,
         verified: true,
     });
+    logger.info(`[system] DOK superadmin created successfully: ${email}, name: ${name}`);
     return res.status(201).json({
         status: "success",
         data: { message: "Teacher created successfully" }
     });
-})
+});
 
 const rejectAssistant = asyncWrapper(async (req, res) => {
     sanitizeInput(req.params);
     const { email } = req.params;
-    const assistant = await admins.findAdminByEmail(email);
+    logger.debug(`[DOK] Rejecting assistant: ${email}`);
     await admins.removeAssistant(email);
+    logger.info(`[DOK] Assistant rejected and removed: ${email}`);
     return res.status(200).json({
         status: "success",
         message: `Assistant with email ${email} rejected and removed from database`
@@ -64,15 +63,19 @@ const rejectAssistant = asyncWrapper(async (req, res) => {
 const acceptAssistant = asyncWrapper(async (req, res) => {
     sanitizeInput(req.params);
     const { email } = req.params;
+    logger.debug(`[DOK] Accepting assistant: ${email}`);
     await admins.verifyAssistant(email);
+    logger.info(`[DOK] Assistant accepted and verified: ${email}`);
     return res.status(200).json({
         status: "success",
         message: `Assistant with email ${email} accepted`
     });
-})
+});
 
 const showPendingRegistration = asyncWrapper(async (req, res) => {
+    logger.debug(`[DOK] Fetching pending assistant registrations`);
     const admin = await admins.showPendingAdminRegistration();
+    logger.info(`[DOK] Pending assistant registrations fetched, count: ${admin.length}`);
     return res.status(200).json({
         status: "success",
         message: `Pending registration from assistants`,
@@ -84,23 +87,27 @@ const showPendingRegistration = asyncWrapper(async (req, res) => {
                 phoneNumber: admin.phoneNumber
             }))
         }
-    })
-})
+    });
+});
 
 const removeAssistant = asyncWrapper(async (req, res) => {
     sanitizeInput(req.params);
     const { email } = req.params;
+    logger.debug(`[DOK] Removing assistant: ${email}`);
     await admins.removeAssistant(email);
+    logger.info(`[DOK] Assistant removed successfully: ${email}`);
     return res.status(200).json({
         status: "success",
         message: `Assistant with email ${email} removed successfully`
-    })
-})
+    });
+});
 
 const checkAssistantGroup = asyncWrapper(async (req, res) => {
     sanitizeInput(req.params);
     const { group } = req.params;
+    logger.debug(`[DOK] Checking assistants in group: ${group}`);
     const admin = await admins.checkAssistantGroup(group);
+    logger.info(`[DOK] Assistants found in group ${group}: ${admin.length}`);
     return res.status(200).json({
         status: "success",
         data: {
@@ -117,12 +124,15 @@ const assignGroupToAssistant = asyncWrapper(async (req, res) => {
     sanitizeInput(req.params);
     const { id } = req.params;
     const { group } = req.body;
+    logger.debug(`[DOK] Assigning group ${group} to assistant id: ${id}`);
     const assistant = await admins.findAdminById(id);
     if (!assistant) {
+        logger.info(`[DOK] Assistant not found, id: ${id}`);
         return res.status(404).json({ status: "Error", data: { message: "Assistant not found" } });
     }
     assistant.group = group;
     await assistant.save();
+    logger.info(`[DOK] Group ${group} assigned to assistant: ${assistant.name} (${assistant.email})`);
     return res.status(200).json({
         status: "success",
         message: `Group ${group} assigned to assistant ${assistant.name} successfully`
@@ -133,95 +143,100 @@ const createNewGroup = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const { groupName } = req.body;
     const groupl = groupName.toLowerCase();
+    logger.debug(`[DOK] Creating new group: ${groupl}`);
     const existingGroup = await Group.findOne({ where: { groupName: groupl } });
     if (existingGroup) {
-        logger.info(`[DOK] Group ${groupName} already exists, cannot create new one with same name`)
+        logger.info(`[DOK] Group already exists, cannot create: ${groupl}`);
         return res.status(400).json({ status: "Error", data: { message: "Group name already exists" } });
     }
     const newGroup = await Group.create({ groupName: groupl });
+    logger.info(`[DOK] Group created successfully: ${groupl}, id: ${newGroup.groupId}`);
     return res.status(201).json({
         status: "success",
         message: `Group ${groupName} created successfully`,
-        data: {
-            groupId: newGroup.groupId,
-            groupName: newGroup.groupName
-        }
+        data: { groupId: newGroup.groupId, groupName: newGroup.groupName }
     });
 });
 
 const editGroup = asyncWrapper(async (req, res) => {
     const { groupName, newName } = req.body;
     const groupl = groupName.toLowerCase();
+    logger.debug(`[DOK] Attempting to rename group: ${groupl} -> ${newName}`);
     const existingGroup = await Group.findOne({ where: { groupName: groupl } });
     if (!existingGroup) {
-        logger.info(`[DOK] Group ${groupName} does not exist, cannot change name`)
+        logger.info(`[DOK] Group does not exist, cannot rename: ${groupl}`);
         return res.status(400).json({ status: "Error", data: { message: "Group name does not exist" } });
     }
-    const newl = newName.toLowerCase()
-    const newG = await Group.findOne({ where: { groupName: newl } })
+    const newl = newName.toLowerCase();
+    const newG = await Group.findOne({ where: { groupName: newl } });
     if (newG) {
-        logger.info(`[DOK] Attempted to change group name to a name that already exists: ${newName}`)
+        logger.info(`[DOK] Target group name already exists: ${newl}`);
         return res.status(400).json({ status: "Error", data: { message: "New group name already exists" } });
     }
-    await changeGroupName(groupName, newName)
-    logger.info(`[DOK] group name changed from ${groupName} to ${newName}`)
+    await changeGroupName(groupName, newName);
+    logger.info(`[DOK] Group renamed: ${groupl} -> ${newl}`);
     return res.status(200).json({
         status: "success",
-        message: `group ${groupName} changed to ${newName} `
-    })
-})
+        message: `group ${groupName} changed to ${newName}`
+    });
+});
 
 const deleteGroup = asyncWrapper(async (req, res) => {
     const { groupName } = req.body;
     const groupl = groupName.toLowerCase();
+    logger.debug(`[DOK] Attempting to delete group: ${groupl}`);
     const existingGroup = await Group.findOne({ where: { groupName: groupl } });
     if (!existingGroup) {
-        logger.info(`[DOK] Group ${groupName} does not exist, cannot delete`)
+        logger.info(`[DOK] Group does not exist, cannot delete: ${groupl}`);
         return res.status(400).json({ status: "Error", data: { message: "Group name does not exist" } });
     }
-    await deleteGroupName(groupName)
-    logger.info(`[DOK] Group ${groupName} deleted successfully`)
+    await deleteGroupName(groupName);
+    logger.info(`[DOK] Group deleted successfully: ${groupl}`);
     return res.status(200).json({
         status: "success",
         message: `Group ${groupName} deleted successfully`
     });
-})
+});
 
 const resetScore = asyncWrapper(async (req, res) => {
+    logger.debug(`[DOK] Resetting total score for all students`);
     await studentDl.resetTotalScore();
-    logger.info("[DOK] Total score reset to zero for all students");
+    logger.info(`[DOK] Total score reset to zero for all students`);
     return res.status(200).json({
         status: "success",
         message: "Total score reset to zero for all students"
     });
-})
+});
 
 const deleteSemester = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
     const { semester } = req.body;
+    logger.debug(`[DOK] Starting semester deletion for: ${semester}`);
+
     await materialDl.deleteMaterialBySemester(semester);
-    logger.debug("[DOK] Deleted materials for semester:", semester);
+    logger.debug(`[DOK] Deleted materials for semester: ${semester}`);
     await sessionDl.deleteAttendanceBySemester(semester);
-    logger.debug("[DOK] Deleted attendance for semester:", semester);
+    logger.debug(`[DOK] Deleted attendance for semester: ${semester}`);
     await sessionDl.deleteSessionsBySemester(semester);
-    logger.debug("[DOK] Deleted sessions for semester:", semester);
+    logger.debug(`[DOK] Deleted sessions for semester: ${semester}`);
     await submissionDl.deleteSubmissionBySemester(semester);
-    logger.debug("[DOK] Deleted submissions for semester:", semester);
+    logger.debug(`[DOK] Deleted submissions for semester: ${semester}`);
     await assignmentDl.deleteAssignmentBySemester(semester);
-    logger.debug("[DOK] Deleted assignments for semester:", semester);
+    logger.debug(`[DOK] Deleted assignments for semester: ${semester}`);
     await quizDl.deleteQuizBySemester(semester);
-    logger.debug("[DOK] Deleted quizzes for semester:", semester);
+    logger.debug(`[DOK] Deleted quizzes for semester: ${semester}`);
     await topicDl.deleteTopicBySemester(semester);
-    logger.debug("[DOK] Deleted topics for semester:", semester);
+    logger.debug(`[DOK] Deleted topics for semester: ${semester}`);
     await studentDl.deleteRejectionsBySemester(semester);
-    logger.debug("[DOK] Deleted rejections for semester:", semester);
+    logger.debug(`[DOK] Deleted rejections for semester: ${semester}`);
     await studentDl.deleteRegistrationBySemester(semester);
-    logger.debug("[DOK] Deleted registrations for semester:", semester);
+    logger.debug(`[DOK] Deleted registrations for semester: ${semester}`);
     await otpDl.deleteOtpBySemester(semester);
-    logger.debug("[DOK] Deleted OTPs for semester:", semester);
+    logger.debug(`[DOK] Deleted OTPs for semester: ${semester}`);
     await studentDl.deleteStudentBySemester(semester);
-    logger.debug("[DOK] Deleted students for semester:", semester);
-    logger.info(`[DOK] all data for session ${semester} in removed`)
+    logger.debug(`[DOK] Deleted students for semester: ${semester}`);
+
+    logger.info(`[DOK] All data for semester ${semester} deleted successfully`);
     return res.status(200).json({
         status: "success",
         message: `All data for semester ${semester} deleted successfully`
@@ -229,12 +244,15 @@ const deleteSemester = asyncWrapper(async (req, res) => {
 });
 
 const DOKStudentsDashboard = asyncWrapper(async (req, res) => {
-    const students = await studentDl.getStudentForDok()
+    logger.debug(`[DOK] Fetching students dashboard`);
+    const students = await studentDl.getStudentForDok();
+    const totalGroups = [...new Set(students.map(student => student.group))].length;
+    logger.info(`[DOK] Students dashboard loaded, totalStudents: ${students.length}, totalGroups: ${totalGroups}`);
     return res.status(200).json({
         status: "success",
         data: {
             totalStudents: students.length,
-            totalGroups: [...new Set(students.map(student => student.group))].length,
+            totalGroups,
             students
         }
     });

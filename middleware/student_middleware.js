@@ -14,7 +14,9 @@ const logger = require('../utils/logger')
 const studentFound = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { studentEmail } = req.body;
-    const requester = req.admin ? `[admin : ${req.admin.email}]` : `[system]`;
+    const requester = req.admin
+        ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+        : `[system]`;
     logger.debug(`${requester} Checking if email is already registered: ${studentEmail}`);
     const adFound = await admin.findAdminByEmail(studentEmail);
     if (adFound) {
@@ -35,7 +37,9 @@ const studentFound = asyncWrapper(async (req, res, next) => {
 const phoneNumberexists = asyncWrapper(async (req, res, next) => {
     sanitizeInput(req.body);
     const { studentPhoneNumber } = req.body;
-    const requester = req.admin ? `[admin : ${req.admin.email}]` : `[system]`;
+    const requester = req.admin
+        ? `[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}]`
+        : `[system]`;
     if (!studentPhoneNumber) {
         logger.info(`${requester} Missing phone number`);
         return next(new AppError("Phone number is required", 400));
@@ -78,16 +82,18 @@ const canSeeSubmission = asyncWrapper(async (req, res, next) => {
     const sub = req.found;
     const studentId = req.student.id;
     const studentEmail = req.student.email;
+    const studentName = req.student.name;
+    const studentGroup = req.student.group;
     if (!studentId) {
-        logger.info(`[student : ${studentEmail}] Student not found`);
+        logger.info(`[student : ${studentEmail} | ${studentName} | ${studentGroup}] Student not found`);
         return next(new AppError("student not found", httpStatus.NOT_FOUND))
     }
-    logger.debug(`[student : ${studentEmail}] Checking view permission for submission: ${sub.id}`);
+    logger.debug(`[student : ${studentEmail} | ${studentName} | ${studentGroup}] Checking view permission for submission: ${sub.id}`);
     if (sub.studentId !== studentId) {
-        logger.info(`[student : ${studentEmail}] View permission denied - submission studentId: ${sub.studentId}, requester studentId: ${studentId}`);
+        logger.info(`[student : ${studentEmail} | ${studentName} | ${studentGroup}] View permission denied - submission studentId: ${sub.studentId}, requester studentId: ${studentId}`);
         return next(new AppError("You are not allowed to view this submission", httpStatus.FORBIDDEN));
     }
-    logger.debug(`[student : ${studentEmail}] View permission granted for submission: ${sub.id}`);
+    logger.debug(`[student : ${studentEmail} | ${studentName} | ${studentGroup}] View permission granted for submission: ${sub.id}`);
     next();
 })
 
