@@ -213,10 +213,24 @@ const deleteAssignment = asyncWrapper(async (req, res, next) => {
 const modifyAssignment = asyncWrapper(async (req, res, next) => {
   sanitizeInput(req.body);
   const { assignId } = req.params;
-  const { title, description } = req.body;
+  const { title, description, endDate, mark, document } = req.body;
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Modifying assignment: ${assignId}, title: ${title}`);
+  const updates = {};
+  if (title !== undefined && title !== null) updates.title = title;
+  if (description !== undefined && description !== null) updates.description = description;
+  if (endDate !== undefined && endDate !== null) updates.endDate = endDate;
+  if (mark !== undefined && mark !== null) updates.mark = mark;
+  if (document !== undefined && document !== null) {
+    const pdfRegex = /^https?:\/\/.+\.pdf$/i;
+    if (typeof document !== 'string' || !pdfRegex.test(document.trim())) {
+      logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Invalid PDF URL: ${document}`);
+      return res.status(400).json({ status: 'fail', message: 'Invalid PDF URL' });
+    }
+    updates.document = document;
+  }
+
   const modidfied = await Assignment.update(
-    { title, description },
+    updates,
     { where: { assignId } }
   );
   if (modidfied[0] === 0) {

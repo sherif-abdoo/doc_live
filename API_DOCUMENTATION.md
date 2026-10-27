@@ -1813,14 +1813,20 @@ Submits (or re-submits) answers for any quiz by ID, regardless of active status.
 
 ### `PATCH /quiz/modifyQuiz/:quizId`
 
-Updates the title and/or description of a quiz.
+Updates one or more fields of a quiz. All fields are optional — only the ones provided will be updated; omitted fields are left unchanged.
 
 **Auth:** Admin token  
 **URL Param:** `quizId`
 
-**Request Body**
+**Request Body** *(all fields optional)*
 ```json
-{ "title": "Updated Title", "description": "New description" }
+{
+  "title": "Updated Title",
+  "description": "New description",
+  "mark": 25,
+  "startDate": "2026-11-10T09:00:00.000Z",
+  "durationInMin": 45
+}
 ```
 
 **Success `200`**
@@ -2060,14 +2066,20 @@ Permanently deletes an assignment and its submissions.
 
 ### `PATCH /assignment/modifyAssignment/:assignId`
 
-Updates the title and/or description of an assignment.
+Updates one or more fields of an assignment. All fields are optional — only the ones provided will be updated; omitted fields are left unchanged. If `document` is provided it must be a valid `.pdf` URL.
 
 **Auth:** Admin token (must match publisher's group)  
 **URL Param:** `assignId`
 
-**Request Body**
+**Request Body** *(all fields optional)*
 ```json
-{ "title": "New Title", "description": "Updated instructions" }
+{
+  "title": "New Title",
+  "description": "Updated instructions",
+  "mark": 30,
+  "endDate": "2026-12-01T23:59:00.000Z",
+  "document": "https://cdn.example.com/updated-assignment.pdf"
+}
 ```
 
 **Success `200`**
@@ -2085,6 +2097,7 @@ Updates the title and/or description of an assignment.
 | Assignment not found | `404` | `"Assignment not found"` |
 | Group mismatch | `403` | `"You do not have permission to modify/delete this Assignment"` |
 | No changes made | `404` | `"No changes made or assignment not found"` |
+| Invalid PDF URL in `document` field | `400` | `"Invalid PDF URL"` |
 
 ---
 
