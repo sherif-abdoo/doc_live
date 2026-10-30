@@ -744,7 +744,7 @@ Scores (and optionally provides a marked PDF link) for a submission. Updates the
 
 ### `GET /admin/createReport/:topicId`
 
-Generates a full topic report: per-student quiz score, grade, session attendance, and assignment completion status.
+Generates a full topic report for all students assigned to the admin: per-student session attendance, assignment scores, and quiz scores across all quizzes in the topic.
 
 **Auth:** Admin token  
 **URL Param:** `topicId`
@@ -752,11 +752,10 @@ Generates a full topic report: per-student quiz score, grade, session attendance
 **Success `200`**
 ```json
 {
-  "topicId": 4,
+  "topicId": 3,
   "topicName": "Photosynthesis",
-  "quizTitle": "Chapter Quiz",
-  "quizTotalScore": 20,
   "numberOfAssignments": 2,
+  "numberOfQuizzes": 2,
   "totalSession": 4,
   "students": [
     {
@@ -764,13 +763,14 @@ Generates a full topic report: per-student quiz score, grade, session attendance
       "email": "ahmed@example.com",
       "studentName": "Ahmed Samir",
       "banned": false,
-      "quizScore": 16,
-      "percentage": 80.0,
-      "grade": "A*",
       "attended": 3,
       "assignments": [
-        { "id": 5, "title": "Cell Drawing", "status": "done" },
-        { "id": 6, "title": "Lab Report", "status": "missing" }
+        { "id": 5, "title": "Cell Drawing", "fullMark": 20, "scoredMark": 17 },
+        { "id": 6, "title": "Lab Report",   "fullMark": 15, "scoredMark": "missing" }
+      ],
+      "quizzes": [
+        { "id": 8, "title": "Chapter 1 Quiz", "fullMark": 25, "scoredMark": 20, "percentage": 80.0, "grade": "A*" },
+        { "id": 9, "title": "Chapter 2 Quiz", "fullMark": 25, "scoredMark": "missing", "percentage": "missing", "grade": "missing" }
       ]
     }
   ]
@@ -800,21 +800,78 @@ Generates a weekly performance report for a specific student. If `topicId` is om
   "status": "success",
   "message": "Weekly report generated successfully",
   "data": {
-    "id": 4,
+    "id": 3,
     "topicTitle": "Photosynthesis",
     "studentName": "Ahmed Samir",
     "semester": "jun",
     "totalSessions": 4,
     "sessionsAttended": 3,
     "totalAssignments": 2,
+    "totalQuizzes": 2,
     "submittedAssignments": 1,
-    "quizGrade": "A",
-    "quizData": { ... },
-    "materials": [ ... ],
+    "assignments": [
+      {
+        "id": 5,
+        "title": "Cell Drawing",
+        "fullMark": 20,
+        "scoredMark": 17,
+        "date": "2026-10-01T09:00:00.000Z",
+        "status": "Marked",
+        "submissionId": 22,
+        "hasMarkedPdf": true,
+        "feedback": "Good work"
+      },
+      {
+        "id": 6,
+        "title": "Lab Report",
+        "fullMark": 15,
+        "scoredMark": "N/A",
+        "date": "2026-10-10T09:00:00.000Z",
+        "status": "Unsubmitted (Still Open)",
+        "submissionId": "N/A",
+        "hasMarkedPdf": false,
+        "feedback": "N/A"
+      }
+    ],
+    "quizzes": [
+      {
+        "id": 8,
+        "title": "Chapter 1 Quiz",
+        "fullMark": 25,
+        "scoredMark": 20,
+        "percentage": 80.0,
+        "grade": "A*",
+        "status": "Marked",
+        "submissionId": 31,
+        "hasMarkedPdf": false,
+        "feedback": "N/A"
+      },
+      {
+        "id": 9,
+        "title": "Chapter 2 Quiz",
+        "fullMark": 25,
+        "scoredMark": "N/A",
+        "percentage": "N/A",
+        "grade": "N/A",
+        "status": "Missing",
+        "submissionId": "N/A",
+        "hasMarkedPdf": false,
+        "feedback": "N/A"
+      }
+    ],
     "sessions": [ ... ]
   }
 }
 ```
+
+**Possible `status` values per assignment/quiz**
+
+| Value | Meaning |
+|---|---|
+| `"Marked"` | Submitted and scored |
+| `"Pending Review"` | Submitted but not yet scored |
+| `"Unsubmitted (Still Open)"` | Not submitted, deadline not passed |
+| `"Missing"` | Not submitted and deadline has passed |
 
 **Error Scenarios**
 
@@ -822,6 +879,8 @@ Generates a weekly performance report for a specific student. If `topicId` is om
 |---|---|---|
 | Student not found | `404` | `"student not found"` |
 | Not the student's assistant | `403` | `"You are not allowed to access this student"` |
+| Topic not found | `404` | `"Topic not found"` |
+| Student not authorized for topic | `403` | `"You are not authorized to access this topic"` |
 | Topic not found | `404` | `"Topic not found"` |
 | Student not authorized for topic | `403` | `"You are not authorized to access this topic"` |
 
@@ -1482,17 +1541,16 @@ Returns quiz score trend data for charting (score per quiz, ordered by date).
 
 ### `GET /student/getMyWeeklyReport` or `GET /student/getMyWeeklyReport/:topicId`
 
-Returns the student's weekly report for their latest topic (or a specific topic).
+Returns the student's weekly report for their latest topic (or a specific topic). Same response shape as [`GET /admin/makeReportForStudent`](#get-adminmakereportforstudentstudenttopicid) — see that section for the full response example.
 
 **Auth:** Student token  
 **URL Param (optional):** `topicId`
-
-**Success `200`** — See [`GET /admin/makeReportForStudent/:studentId`](#get-adminmakereportforstudentstudenttopicid) for the same response shape.
 
 **Error Scenarios**
 
 | Scenario | Status | Message |
 |---|---|---|
+| Student not found | `404` | `"Student not found"` |
 | Topic not found | `404` | `"Topic not found"` |
 | Topic not for student's group | `403` | `"You are not authorized to access this topic"` |
 | Internal error | `500` | `"Internal server error"` |

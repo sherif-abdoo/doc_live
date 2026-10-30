@@ -30,7 +30,6 @@ const createReport = async (req, res) => {
 
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Requesting report for topicId: ${topicId}`);
 
-  // 🔒 Authorization
   if (!req.admin || req.admin.type !== 'admin') {
     logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Access denied - not an assistant`);
     return res.status(403).json({ error: 'Access denied. Assistants only.' });
@@ -38,7 +37,6 @@ const createReport = async (req, res) => {
 
   const assistantId = req.admin.id;
 
-  // 🔍 Validate topic
   const topic = await topicDl.getTopicById(topicId);
   if (!topic) {
     logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic not found: ${topicId}`);
@@ -54,7 +52,6 @@ const createReport = async (req, res) => {
   const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Total sessions for topic: ${topicSessions}`);
 
-  // 👥 Get students
   let students = [];
   if (req.admin.group === 'all') {
     students = await Student.findAll({});
@@ -63,27 +60,26 @@ const createReport = async (req, res) => {
   }
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Students loaded: ${students.length}`);
 
-  // Fetch assignments
   const assignments = await Assignment.findAll({
     where: { topicId: topic.topicId },
     attributes: ['assignId', 'title', 'mark']
   });
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignments for topic: ${assignments.length}`);
 
-  const quizzes = await Quiz.findOne({
+  const quizzes = await Quiz.findAll({
     where: { topicId: topic.topicId },
     attributes: ['quizId', 'mark', 'title']
   });
-  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Quiz found: ${quizzes ? quizzes.title : 'none'}`);
+  logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Quizzes for topic: ${quizzes.length}`);
 
-  const quizTotalScore = quizzes?.mark ?? 0;
   const numberOfAssignments = assignments.length;
-
+  const numberOfQuizzes = quizzes.length;
   const studentIds = students.map(s => s.studentId);
-
-  // 📤 Build submission query
-  let submissionConditions = [];
   const assignmentIds = assignments.map(a => a.assignId);
+  const quizIds = quizzes.map(q => q.quizId);
+
+  // Build submission query covering all assignments and all quizzes
+  let submissionConditions = [];
   if (assignmentIds.length > 0) {
     submissionConditions.push({
       type: 'assignment',
@@ -91,10 +87,10 @@ const createReport = async (req, res) => {
       studentId: { [Op.in]: studentIds }
     });
   }
-  if (quizzes) {
+  if (quizIds.length > 0) {
     submissionConditions.push({
       type: 'quiz',
-      quizId: quizzes.quizId,
+      quizId: { [Op.in]: quizIds },
       studentId: { [Op.in]: studentIds }
     });
   }
@@ -108,45 +104,54 @@ const createReport = async (req, res) => {
   }
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Submissions loaded: ${submissions.length}`);
 
-  // 🗂️ Build lookup map
+  // Build lookup map keyed by A-studentId-assignId and Q-studentId-quizId
   const submissionsMap = {};
   submissions.forEach(sub => {
     if (sub.type === 'assignment') {
       submissionsMap[`A-${sub.studentId}-${sub.assId}`] = sub.score;
     } else if (sub.type === 'quiz') {
-      submissionsMap[`Q-${sub.studentId}`] = sub.score;
+      submissionsMap[`Q-${sub.studentId}-${sub.quizId}`] = sub.score;
     }
   });
 
   const grading = getGradingSystem();
 
   const studentReports = await Promise.all(students.map(async (st) => {
-    const quizScore = submissionsMap[`Q-${st.studentId}`];
-    let percentage = 'missing';
-    let grade = 'missing';
-    if (quizScore != null && quizTotalScore > 0) {
-      percentage = parseFloat(((quizScore / quizTotalScore) * 100).toFixed(2));
-      grade = grading.calculateGrade(percentage);
-    }
-
     const attendedSessions = await sessionDl.countAttendedSessionsByTopic(st.studentId, topic.topicId);
 
     const assignmentList = assignments.map(ass => ({
       id: ass.assignId,
       title: ass.title,
-      status: submissionsMap[`A-${st.studentId}-${ass.assignId}`] != null ? "done" : "missing"
+      fullMark: ass.mark,
+      scoredMark: submissionsMap[`A-${st.studentId}-${ass.assignId}`] ?? 'missing'
     }));
+
+    const quizList = quizzes.map(q => {
+      const scoredMark = submissionsMap[`Q-${st.studentId}-${q.quizId}`] ?? null;
+      let percentage = 'missing';
+      let grade = 'missing';
+      if (scoredMark !== null && q.mark > 0) {
+        percentage = parseFloat(((scoredMark / q.mark) * 100).toFixed(2));
+        grade = grading.calculateGrade(percentage);
+      }
+      return {
+        id: q.quizId,
+        title: q.title,
+        fullMark: q.mark,
+        scoredMark: scoredMark ?? 'missing',
+        percentage,
+        grade
+      };
+    });
 
     return {
       id: st.studentId,
       email: st.studentEmail,
       studentName: st.studentName,
       banned: st.banned,
-      quizScore: quizScore ?? 'missing',
-      percentage,
-      grade,
       attended: attendedSessions,
-      assignments: assignmentList
+      assignments: assignmentList,
+      quizzes: quizList
     };
   }));
 
@@ -155,9 +160,8 @@ const createReport = async (req, res) => {
   return res.json({
     topicId: topic.topicId,
     topicName: topic.topicName,
-    quizTitle: quizzes?.title ?? 'No quiz',
-    quizTotalScore,
     numberOfAssignments,
+    numberOfQuizzes,
     totalSession: topicSessions,
     students: studentReports
   });

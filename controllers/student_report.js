@@ -21,17 +21,17 @@ const Topic = require('../models/topic_model');
 const topicDl = require('../data_link/topic_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const sessionDl = require('../data_link/session_data_link.js');
-const logger = require('../utils/logger')
-
+const { Op } = require('sequelize');
+const logger = require('../utils/logger');
 
 const normalize = (value) => (value === null || value === undefined ? "N/A" : value);
 
-const getStudentSubmissionForAssignment = async (studentId, assignmentId) => {
-  return await submission.getSubmissionForAssignment(studentId, assignmentId);
-};
-
-const getStudentSubmissionForQuiz = async (studentId, quizId) => {
-  return submission.getSubmissionForQuiz(studentId, quizId);
+const calculateGrade = (percentage) => {
+  if (percentage >= 80) return 'A*';
+  if (percentage >= 70) return 'A';
+  if (percentage >= 60) return 'B';
+  if (percentage >= 50) return 'C';
+  return 'U';
 };
 
 const getMyWeeklyReport = asyncWrapper(async (req, res) => {
@@ -64,129 +64,139 @@ const getMyWeeklyReport = asyncWrapper(async (req, res) => {
 
     logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Topic resolved: ${topic.topicId} - ${topic.topicName}`);
 
-    const topicSessions = await sessionDl.countTotalSessionsByTopic(topic.topicId);
-    const attendedSessions = await sessionDl.countAttendedSessionsByTopic(studentId, topic.topicId);
+    // Fetch everything in parallel
+    const [topicSessions, attendedSessions, assignments, quizzes, sessions] = await Promise.all([
+      sessionDl.countTotalSessionsByTopic(topic.topicId),
+      sessionDl.countAttendedSessionsByTopic(studentId, topic.topicId),
+      assignment.getAssignmentsByTopicId(topic.topicId),
+      quiz.getQuizzesByTopicId(topic.topicId),
+      sessionDl.getSessionsByTopic(topic.topicId, studentId)
+    ]);
 
-    const assignments = await assignment.getAssignmentsByTopicId(topic.topicId);
-    const quizzes = await quiz.getQuizzesByTopicId(topic.topicId);
     logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Assignments: ${assignments.length}, Quizzes: ${quizzes.length}`);
 
-    let quizGrade = "N/A";
-    let quizData = null;
+    const assignmentIds = assignments.map(a => a.assignId);
+    const quizIds = quizzes.map(q => q.quizId);
 
-    const reportData = {
-      id: topic.topicId,
-      topicTitle: topic.topicName,
-      studentName: studentData.studentName,
-      semester: topic.semester,
-      totalSessions: topicSessions,
-      sessionsAttended: attendedSessions,
-      totalAssignments: assignments.length,
-      submittedAssignments: 0,
-      quizGrade,
-      quizData,
-      materials: [],
-      sessions: []
-    };
+    // Single bulk submission fetch for all assignments and quizzes
+    const submissionConditions = [];
+    if (assignmentIds.length > 0) {
+      submissionConditions.push({ type: 'assignment', assId: { [Op.in]: assignmentIds }, studentId });
+    }
+    if (quizIds.length > 0) {
+      submissionConditions.push({ type: 'quiz', quizId: { [Op.in]: quizIds }, studentId });
+    }
+
+    const allSubmissions = submissionConditions.length > 0
+      ? await Submission.findAll({
+        where: { [Op.or]: submissionConditions },
+        attributes: ['subId', 'type', 'assId', 'quizId', 'score', 'marked', 'feedback']
+      })
+      : [];
+
+    // Build lookup maps
+    const assignmentSubMap = {};
+    const quizSubMap = {};
+    allSubmissions.forEach(sub => {
+      if (sub.type === 'assignment') assignmentSubMap[sub.assId] = sub;
+      else if (sub.type === 'quiz') quizSubMap[sub.quizId] = sub;
+    });
+
+    logger.debug(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Submissions loaded: ${allSubmissions.length}`);
 
     const now = new Date();
 
-    reportData.sessions = await sessionDl.getSessionsByTopic(topic.topicId, studentId);
-
-    for (let index = 0; index < assignments.length; index++) {
-      const assignmentItem = assignments[index];
-      const submission = await getStudentSubmissionForAssignment(studentId, assignmentItem.assignId);
-
+    // Map assignments
+    let submittedAssignments = 0;
+    const assignmentList = assignments.map(a => {
+      const sub = assignmentSubMap[a.assignId];
       let status = "Missing";
       let subId = "N/A";
       let hasMarkedPdf = false;
-      if (submission) {
-        const isMarked = submission.score !== null && submission.score !== undefined;
-        if (isMarked) {
-          status = "Marked";
-          subId = submission.subId;
-          hasMarkedPdf = !!submission.marked;
-        } else {
-          status = "Pending Review";
-        }
-        reportData.submittedAssignments++;
-      } else if (assignmentItem.endDate && new Date(assignmentItem.endDate) > now) {
+
+      if (sub) {
+        const isMarked = sub.score !== null && sub.score !== undefined;
+        status = isMarked ? "Marked" : "Pending Review";
+        subId = sub.subId;
+        hasMarkedPdf = !!sub.marked;
+        submittedAssignments++;
+      } else if (a.endDate && new Date(a.endDate) > now) {
         status = "Unsubmitted (Still Open)";
       }
 
-      reportData.materials.push({
-        id: assignmentItem.assignId,
-        title: assignmentItem.title,
-        maxPoints: assignmentItem.mark,
-        date: assignmentItem.startDate,
+      return {
+        id: a.assignId,
+        title: a.title,
+        fullMark: a.mark,
+        scoredMark: sub ? normalize(sub.score) : "N/A",
+        date: a.startDate,
         status,
         submissionId: subId,
         hasMarkedPdf,
-        score: submission ? normalize(submission.score) : "N/A",
-        feedback: submission ? normalize(submission.feedback) : "N/A"
-      });
-    }
+        feedback: sub ? normalize(sub.feedback) : "N/A"
+      };
+    });
 
-    for (let index = 0; index < quizzes.length; index++) {
-      const quizItem = quizzes[index];
-      const submission = await getStudentSubmissionForQuiz(studentId, quizItem.quizId);
-
-      let percentage = "N/A";
-      let grade = "N/A";
+    // Map quizzes
+    const quizList = quizzes.map(q => {
+      const sub = quizSubMap[q.quizId];
       let status = "Missing";
       let hasMarkedPdf = false;
+      let scoredMark = "N/A";
+      let percentage = "N/A";
+      let grade = "N/A";
 
-      if (submission) {
-        const isMarked = submission.score !== null && submission.score !== undefined;
+      if (sub) {
+        const isMarked = sub.score !== null && sub.score !== undefined;
         if (isMarked) {
           status = "Marked";
-          hasMarkedPdf = !!submission.marked;
+          hasMarkedPdf = !!sub.marked;
+          scoredMark = normalize(sub.score);
+          const maxMark = q.mark !== null && q.mark !== undefined ? Number(q.mark) : null;
+          if (maxMark !== null && maxMark > 0) {
+            percentage = Number(((Number(sub.score) / maxMark) * 100).toFixed(2));
+            grade = calculateGrade(percentage);
+          }
         } else {
           status = "Pending Review";
         }
-
-        const score = submission.score !== null && submission.score !== undefined ? Number(submission.score) : null;
-        const maxMark = quizItem.mark !== null && quizItem.mark !== undefined ? Number(quizItem.mark) : null;
-
-        if (score !== null && maxMark !== null && maxMark > 0) {
-          percentage = Number(((score / maxMark) * 100).toFixed(2));
-
-          if (percentage >= 80) grade = 'A*';
-          else if (percentage >= 70) grade = 'A';
-          else if (percentage >= 60) grade = 'B';
-          else if (percentage >= 50) grade = 'C';
-          else grade = 'U';
-
-          quizGrade = grade;
-        }
-      } else if (quizItem.endDate && new Date(quizItem.endDate) > now) {
+      } else if (q.endDate && new Date(q.endDate) > now) {
         status = "Unsubmitted (Still Open)";
       }
 
-      quizData = {
-        type: 'quiz',
-        id: quizItem.quizId,
-        columnName: `Quiz${index + 1}`,
-        title: quizItem.title,
-        maxPoints: quizItem.mark,
-        status,
-        submissionId: submission ? submission.subId : "N/A",
-        hasMarkedPdf,
-        score: submission ? normalize(submission.score) : "N/A",
+      return {
+        id: q.quizId,
+        title: q.title,
+        fullMark: q.mark,
+        scoredMark,
         percentage,
         grade,
-        feedback: submission ? normalize(submission.feedback) : "N/A"
+        status,
+        submissionId: sub ? sub.subId : "N/A",
+        hasMarkedPdf,
+        feedback: sub ? normalize(sub.feedback) : "N/A"
       };
-    }
-
-    reportData.quizGrade = quizGrade;
-    reportData.quizData = quizData;
+    });
 
     logger.info(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Weekly report generated for topic: ${topic.topicId} - ${topic.topicName}`);
+
     return res.status(200).json({
       status: "success",
       message: "Weekly report generated successfully",
-      data: reportData
+      data: {
+        id: topic.topicId,
+        topicTitle: topic.topicName,
+        studentName: studentData.studentName,
+        semester: topic.semester,
+        totalSessions: topicSessions,
+        sessionsAttended: attendedSessions,
+        totalAssignments: assignments.length,
+        totalQuizzes: quizzes.length,
+        submittedAssignments,
+        assignments: assignmentList,
+        quizzes: quizList,
+        sessions
+      }
     });
   } catch (error) {
     logger.error(`[student : ${req.student.email} | ${req.student.name} | ${req.student.group}] Error generating weekly report: ${error.message}`);
