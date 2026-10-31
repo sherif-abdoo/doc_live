@@ -1,0 +1,613 @@
+{
+  "info": {
+    "name": "DOK Live",
+    "_postman_id": "dok-live-collection",
+    "description": "Full API collection for DOK Live backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Local",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Login",
+              "request": { "method": "POST", "url": "http://localhost:4000/login", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secret\"\n}" } }
+            },
+            {
+              "name": "Me",
+              "request": { "method": "GET", "url": "http://localhost:4000/login/me", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get All Groups",
+              "request": { "method": "GET", "url": "http://localhost:4000/login/getAllGroups" }
+            },
+            {
+              "name": "Forget Password",
+              "request": { "method": "POST", "url": "http://localhost:4000/login/forgetPassword", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" } }
+            },
+            {
+              "name": "Verify OTP",
+              "request": { "method": "POST", "url": "http://localhost:4000/login/otp", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}" } }
+            },
+            {
+              "name": "Reset Password",
+              "request": { "method": "POST", "url": "http://localhost:4000/login/resetPassword/:email", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": { "raw": "http://localhost:4000/login/resetPassword/user@example.com", "host": ["http://localhost:4000"], "path": ["login", "resetPassword", "user@example.com"] }, "body": { "mode": "raw", "raw": "{\n  \"password\": \"newPassword123\"\n}" } }
+            }
+          ]
+        },
+        {
+          "name": "Admin",
+          "item": [
+            {
+              "name": "Register Assistant",
+              "request": { "method": "POST", "url": "http://localhost:4000/admin/adminRegister", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"assistant@example.com\",\n  \"name\": \"Sara Ali\",\n  \"password\": \"securePass123\",\n  \"phoneNumber\": \"01012345678\",\n  \"group\": \"GroupA\"\n}" } }
+            },
+            {
+              "name": "Admin SSE",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/adminSSE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Pending Registrations",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/pendingRegistrations", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Get Pending Count",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/getpendingCount", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Verify Student",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/admin/verifyStudent/:studentEmail", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "http://localhost:4000/admin/verifyStudent/student@example.com", "host": ["http://localhost:4000"], "path": ["admin", "verifyStudent", "student@example.com"] } }
+            },
+            {
+              "name": "Reject Student",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/admin/rejectStudent/:studentEmail", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "http://localhost:4000/admin/rejectStudent/student@example.com", "host": ["http://localhost:4000"], "path": ["admin", "rejectStudent", "student@example.com"] } }
+            },
+            {
+              "name": "Check Students In Group",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/checkStudentInGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Remove Student",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/admin/removeStudent/:studentEmail", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "http://localhost:4000/admin/removeStudent/student@example.com", "host": ["http://localhost:4000"], "path": ["admin", "removeStudent", "student@example.com"] } }
+            },
+            {
+              "name": "Ban Student",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/admin/banStudent/:studentEmail", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "http://localhost:4000/admin/banStudent/student@example.com", "host": ["http://localhost:4000"], "path": ["admin", "banStudent", "student@example.com"] } }
+            },
+            {
+              "name": "Show My Profile",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/showMyProfile", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Show Student Profile",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/showStudentProfile/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Show Unmarked Submissions",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/showUnmarkedSubmissions", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Show Marked Submissions",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/showMarkedSubmissions", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Show All Submissions",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/showAllSubmissions", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Find Submission By ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/findSubmissionById/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Mark Submission",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/admin/markSubmission/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"score\": 18,\n  \"marked\": \"https://cdn.example.com/marked.pdf\"\n}" } }
+            },
+            {
+              "name": "Create Report",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/createReport/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Make Report For Student",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/makeReportForStudent/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Make Report For Student (with topicId)",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/makeReportForStudent/1/2", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Needs Attention",
+              "request": { "method": "GET", "url": "http://localhost:4000/admin/needsAttention", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "DOK",
+          "item": [
+            {
+              "name": "DOK Sign Up",
+              "request": { "method": "POST", "url": "http://localhost:4000/dok/signUp", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"teacher@dok.com\",\n  \"name\": \"Dr. Mahmoud\",\n  \"password\": \"superSecret\",\n  \"phoneNumber\": \"01000000001\"\n}" } }
+            },
+            {
+              "name": "Reject Assistant",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/dok/rejectAssistant/sara@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Accept Assistant",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/dok/acceptAssistant/sara@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Show Pending Assistant Registration",
+              "request": { "method": "GET", "url": "http://localhost:4000/dok/showPendingAssistantRegistration", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Remove Assistant",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/dok/removeAssistant/sara@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Check Assistant In Group",
+              "request": { "method": "GET", "url": "http://localhost:4000/dok/checkAssistantInGroup/groupa", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Assign Group To Assistant",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/dok/assignGroupToAssistant/2", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"group\": \"groupb\"\n}" } }
+            },
+            {
+              "name": "Create New Group",
+              "request": { "method": "POST", "url": "http://localhost:4000/dok/createNewGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"groupName\": \"GroupC\"\n}" } }
+            },
+            {
+              "name": "Update Group",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/dok/updateGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"groupName\": \"GroupA\",\n  \"newName\": \"GroupAlpha\"\n}" } }
+            },
+            {
+              "name": "Delete Group",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/dok/deleteGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"groupName\": \"GroupC\"\n}" } }
+            },
+            {
+              "name": "Delete All Assignment Submissions",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/dok/deleteAllAssignmentsSubmission", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Delete All Quiz Submissions",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/dok/deleteAllQuizSubmission", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Delete By Semester",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/dok/deleteBySemester", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"semester\": \"jun\"\n}" } }
+            },
+            {
+              "name": "Reset Score",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/dok/resetScore", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Students Dashboard",
+              "request": { "method": "GET", "url": "http://localhost:4000/dok/studentsDashboard", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Student",
+          "item": [
+            {
+              "name": "Student Register",
+              "request": { "method": "POST", "url": "http://localhost:4000/student/studentRegister", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"studentEmail\": \"ahmed@example.com\",\n  \"studentName\": \"Ahmed Samir\",\n  \"password\": \"secure123\",\n  \"studentPhoneNumber\": \"01011111111\",\n  \"parentPhoneNumber\": \"01022222222\",\n  \"parentEmail\": \"parent@example.com\",\n  \"birthDate\": \"2005-03-15\",\n  \"group\": \"GroupA\",\n  \"semester\": \"jun\"\n}" } }
+            },
+            {
+              "name": "Student SSE Connection",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/studentSSEConnection", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Show My Admin Profile",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/showMyAdminProfile", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Show My Profile",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/showMyProfile", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Get My Feed",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/getMyFeed", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Show My Submission",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/showMySubmission", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Show Submission By ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/showSubmission/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Show Marked Submission",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/showMarkedSubmission/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Get Quiz Trend",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/getQuizTrend", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Get My Weekly Report",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/getMyWeeklyReport", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Get My Weekly Report (with topicId)",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/getMyWeeklyReport/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Get Unsubmitted Assignments",
+              "request": { "method": "GET", "url": "http://localhost:4000/student/getUnsubmittedAssignments", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Feed",
+          "item": [
+            {
+              "name": "Get Feed",
+              "request": { "method": "GET", "url": "http://localhost:4000/feed", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Post On Feed",
+              "request": { "method": "POST", "url": "http://localhost:4000/feed/postOnFeed", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"text\": \"Important announcement!\",\n  \"semester\": \"jun\"\n}" } }
+            }
+          ]
+        },
+        {
+          "name": "Topic",
+          "item": [
+            {
+              "name": "Create Topic",
+              "request": { "method": "POST", "url": "http://localhost:4000/topic/createTopic", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"topicName\": \"Photosynthesis\",\n  \"semester\": \"jun\",\n  \"subject\": \"Biology\"\n}" } }
+            },
+            {
+              "name": "Get All Topics",
+              "request": { "method": "GET", "url": "http://localhost:4000/topic/getAllTopics", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get Topic By ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/topic/get_topic_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Update Topic",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/topic/updateTopic/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"topicName\": \"Updated Topic\",\n  \"semester\": \"nov\",\n  \"subject\": \"Physics\"\n}" } }
+            },
+            {
+              "name": "Delete Topic",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/topic/deleteTopic/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Assignment",
+          "item": [
+            {
+              "name": "Create Assignment",
+              "request": { "method": "POST", "url": "http://localhost:4000/assignment/createAssignment", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Cell Drawing\",\n  \"description\": \"Draw a cell\",\n  \"mark\": 20,\n  \"document\": \"https://cdn.example.com/assignment.pdf\",\n  \"endDate\": \"2026-12-01T23:59:00.000Z\",\n  \"semester\": \"jun\",\n  \"topicId\": 1\n}" } }
+            },
+            {
+              "name": "Get All Assignments",
+              "request": { "method": "GET", "url": "http://localhost:4000/assignment/getAllAssignments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get Assignment By ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/assignment/get_assignment_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Submit Assignment",
+              "request": { "method": "POST", "url": "http://localhost:4000/assignment/submitAssignment/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"answers\": \"https://cdn.example.com/my-submission.pdf\"\n}" } }
+            },
+            {
+              "name": "Get Unsubmitted Assignments",
+              "request": { "method": "GET", "url": "http://localhost:4000/assignment/getUnsubmittedAssignments", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] }
+            },
+            {
+              "name": "Modify Assignment",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/assignment/modifyAssignment/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Title\",\n  \"description\": \"Updated description\",\n  \"mark\": 25,\n  \"endDate\": \"2026-12-15T23:59:00.000Z\",\n  \"document\": \"https://cdn.example.com/updated.pdf\"\n}" } }
+            },
+            {
+              "name": "Delete Assignment",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/assignment/deleteAssignment/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Quiz",
+          "item": [
+            {
+              "name": "Create Quiz",
+              "request": { "method": "POST", "url": "http://localhost:4000/quiz/createQuiz", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Chapter 1 Quiz\",\n  \"mark\": 25,\n  \"date\": \"2026-11-10T09:00:00.000Z\",\n  \"semester\": \"jun\",\n  \"durationInMin\": 45,\n  \"topicId\": 1\n}" } }
+            },
+            {
+              "name": "Get All Quizzes",
+              "request": { "method": "GET", "url": "http://localhost:4000/quiz/getAllQuizzes", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get Quiz By ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/quiz/get_quiz_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Start Quiz",
+              "request": { "method": "GET", "url": "http://localhost:4000/quiz/startQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Get Active Quiz",
+              "request": { "method": "GET", "url": "http://localhost:4000/quiz/getActiveQuiz", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Submit Active Quiz",
+              "request": { "method": "POST", "url": "http://localhost:4000/quiz/submitActiveQuiz", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"answers\": \"https://cdn.example.com/quiz-answers.pdf\"\n}" } }
+            },
+            {
+              "name": "Submit Quiz",
+              "request": { "method": "POST", "url": "http://localhost:4000/quiz/submitQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"answers\": \"https://cdn.example.com/quiz-answers.pdf\"\n}" } }
+            },
+            {
+              "name": "Modify Quiz",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/quiz/modifyQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Quiz Title\",\n  \"mark\": 30,\n  \"durationInMin\": 60\n}" } }
+            },
+            {
+              "name": "Delete Quiz",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/quiz/deleteQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Material",
+          "item": [
+            {
+              "name": "Create Material",
+              "request": { "method": "POST", "url": "http://localhost:4000/material/createMaterial", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Lecture Notes\",\n  \"description\": \"Chapter 1 notes\",\n  \"document\": \"https://cdn.example.com/notes.pdf\",\n  \"link\": null,\n  \"topicId\": 1\n}" } }
+            },
+            {
+              "name": "Get All Materials",
+              "request": { "method": "GET", "url": "http://localhost:4000/material/getAllMaterials", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get Material By ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/material/get_material_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get Material By Topic ID",
+              "request": { "method": "GET", "url": "http://localhost:4000/material/getMaterialByTopicId/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Update Material",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/material/updateMaterial/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Notes\",\n  \"description\": \"Revised chapter 1\"\n}" } }
+            },
+            {
+              "name": "Delete Material",
+              "request": { "method": "DELETE", "url": "http://localhost:4000/material/deleteMaterial/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Session",
+          "item": [
+            {
+              "name": "Start Session",
+              "request": { "method": "POST", "url": "http://localhost:4000/session/startSession", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"topicId\": 1\n}" } }
+            },
+            {
+              "name": "End Session",
+              "request": { "method": "PATCH", "url": "http://localhost:4000/session/endSession", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Attend Session",
+              "request": { "method": "POST", "url": "http://localhost:4000/session/attendSession", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get All Sessions",
+              "request": { "method": "GET", "url": "http://localhost:4000/session/getAllSessions", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get Active Session",
+              "request": { "method": "GET", "url": "http://localhost:4000/session/getActiveSession", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get All Attendance For Session",
+              "request": { "method": "GET", "url": "http://localhost:4000/session/getAllAttendanceForSession/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            },
+            {
+              "name": "Get Last Created Session",
+              "request": { "method": "GET", "url": "http://localhost:4000/session/getLastCreatedSession", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Leaderboard",
+          "item": [
+            {
+              "name": "Get Leaderboard",
+              "request": { "method": "GET", "url": "http://localhost:4000/leaderBoard?page=1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            }
+          ]
+        },
+        {
+          "name": "Health",
+          "item": [
+            {
+              "name": "Health Check",
+              "request": { "method": "GET", "url": "http://localhost:4000/health" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Server",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Login",
+              "request": { "method": "POST", "url": "https://www.dok-edu.com/login", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secret\"\n}" } }
+            },
+            {
+              "name": "Me",
+              "request": { "method": "GET", "url": "https://www.dok-edu.com/login/me", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] }
+            },
+            {
+              "name": "Get All Groups",
+              "request": { "method": "GET", "url": "https://www.dok-edu.com/login/getAllGroups" }
+            },
+            {
+              "name": "Forget Password",
+              "request": { "method": "POST", "url": "https://www.dok-edu.com/login/forgetPassword", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" } }
+            },
+            {
+              "name": "Verify OTP",
+              "request": { "method": "POST", "url": "https://www.dok-edu.com/login/otp", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}" } }
+            },
+            {
+              "name": "Reset Password",
+              "request": { "method": "POST", "url": "https://www.dok-edu.com/login/resetPassword/user@example.com", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"password\": \"newPassword123\"\n}" } }
+            }
+          ]
+        },
+        {
+          "name": "Admin",
+          "item": [
+            { "name": "Register Assistant", "request": { "method": "POST", "url": "https://www.dok-edu.com/admin/adminRegister", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"assistant@example.com\",\n  \"name\": \"Sara Ali\",\n  \"password\": \"securePass123\",\n  \"phoneNumber\": \"01012345678\",\n  \"group\": \"GroupA\"\n}" } } },
+            { "name": "Admin SSE", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/adminSSE", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Pending Registrations", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/pendingRegistrations", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Get Pending Count", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/getpendingCount", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Verify Student", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/admin/verifyStudent/student@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Reject Student", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/admin/rejectStudent/student@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Check Students In Group", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/checkStudentInGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Remove Student", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/admin/removeStudent/student@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Ban Student", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/admin/banStudent/student@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Show My Profile", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/showMyProfile", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Show Student Profile", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/showStudentProfile/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Show Unmarked Submissions", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/showUnmarkedSubmissions", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Show Marked Submissions", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/showMarkedSubmissions", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Show All Submissions", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/showAllSubmissions", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Find Submission By ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/findSubmissionById/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Mark Submission", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/admin/markSubmission/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"score\": 18,\n  \"marked\": \"https://cdn.example.com/marked.pdf\"\n}" } } },
+            { "name": "Create Report", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/createReport/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Make Report For Student", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/makeReportForStudent/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Make Report For Student (with topicId)", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/makeReportForStudent/1/2", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Needs Attention", "request": { "method": "GET", "url": "https://www.dok-edu.com/admin/needsAttention", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "DOK",
+          "item": [
+            { "name": "DOK Sign Up", "request": { "method": "POST", "url": "https://www.dok-edu.com/dok/signUp", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"teacher@dok.com\",\n  \"name\": \"Dr. Mahmoud\",\n  \"password\": \"superSecret\",\n  \"phoneNumber\": \"01000000001\"\n}" } } },
+            { "name": "Reject Assistant", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/dok/rejectAssistant/sara@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Accept Assistant", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/dok/acceptAssistant/sara@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Show Pending Assistant Registration", "request": { "method": "GET", "url": "https://www.dok-edu.com/dok/showPendingAssistantRegistration", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Remove Assistant", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/dok/removeAssistant/sara@example.com", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Check Assistant In Group", "request": { "method": "GET", "url": "https://www.dok-edu.com/dok/checkAssistantInGroup/groupa", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Assign Group To Assistant", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/dok/assignGroupToAssistant/2", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"group\": \"groupb\"\n}" } } },
+            { "name": "Create New Group", "request": { "method": "POST", "url": "https://www.dok-edu.com/dok/createNewGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"groupName\": \"GroupC\"\n}" } } },
+            { "name": "Update Group", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/dok/updateGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"groupName\": \"GroupA\",\n  \"newName\": \"GroupAlpha\"\n}" } } },
+            { "name": "Delete Group", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/dok/deleteGroup", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"groupName\": \"GroupC\"\n}" } } },
+            { "name": "Delete All Assignment Submissions", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/dok/deleteAllAssignmentsSubmission", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Delete All Quiz Submissions", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/dok/deleteAllQuizSubmission", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Delete By Semester", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/dok/deleteBySemester", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"semester\": \"jun\"\n}" } } },
+            { "name": "Reset Score", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/dok/resetScore", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Students Dashboard", "request": { "method": "GET", "url": "https://www.dok-edu.com/dok/studentsDashboard", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Student",
+          "item": [
+            { "name": "Student Register", "request": { "method": "POST", "url": "https://www.dok-edu.com/student/studentRegister", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"studentEmail\": \"ahmed@example.com\",\n  \"studentName\": \"Ahmed Samir\",\n  \"password\": \"secure123\",\n  \"studentPhoneNumber\": \"01011111111\",\n  \"parentPhoneNumber\": \"01022222222\",\n  \"parentEmail\": \"parent@example.com\",\n  \"birthDate\": \"2005-03-15\",\n  \"group\": \"GroupA\",\n  \"semester\": \"jun\"\n}" } } },
+            { "name": "Student SSE Connection", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/studentSSEConnection", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Show My Admin Profile", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/showMyAdminProfile", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Show My Profile", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/showMyProfile", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Get My Feed", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/getMyFeed", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Show My Submission", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/showMySubmission", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Show Submission By ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/showSubmission/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Show Marked Submission", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/showMarkedSubmission/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Get Quiz Trend", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/getQuizTrend", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Get My Weekly Report", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/getMyWeeklyReport", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Get My Weekly Report (with topicId)", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/getMyWeeklyReport/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Get Unsubmitted Assignments", "request": { "method": "GET", "url": "https://www.dok-edu.com/student/getUnsubmittedAssignments", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Feed",
+          "item": [
+            { "name": "Get Feed", "request": { "method": "GET", "url": "https://www.dok-edu.com/feed", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Post On Feed", "request": { "method": "POST", "url": "https://www.dok-edu.com/feed/postOnFeed", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"text\": \"Important announcement!\",\n  \"semester\": \"jun\"\n}" } } }
+          ]
+        },
+        {
+          "name": "Topic",
+          "item": [
+            { "name": "Create Topic", "request": { "method": "POST", "url": "https://www.dok-edu.com/topic/createTopic", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"topicName\": \"Photosynthesis\",\n  \"semester\": \"jun\",\n  \"subject\": \"Biology\"\n}" } } },
+            { "name": "Get All Topics", "request": { "method": "GET", "url": "https://www.dok-edu.com/topic/getAllTopics", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get Topic By ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/topic/get_topic_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Update Topic", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/topic/updateTopic/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"topicName\": \"Updated Topic\",\n  \"semester\": \"nov\",\n  \"subject\": \"Physics\"\n}" } } },
+            { "name": "Delete Topic", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/topic/deleteTopic/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Assignment",
+          "item": [
+            { "name": "Create Assignment", "request": { "method": "POST", "url": "https://www.dok-edu.com/assignment/createAssignment", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Cell Drawing\",\n  \"description\": \"Draw a cell\",\n  \"mark\": 20,\n  \"document\": \"https://cdn.example.com/assignment.pdf\",\n  \"endDate\": \"2026-12-01T23:59:00.000Z\",\n  \"semester\": \"jun\",\n  \"topicId\": 1\n}" } } },
+            { "name": "Get All Assignments", "request": { "method": "GET", "url": "https://www.dok-edu.com/assignment/getAllAssignments", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get Assignment By ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/assignment/get_assignment_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Submit Assignment", "request": { "method": "POST", "url": "https://www.dok-edu.com/assignment/submitAssignment/1", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"answers\": \"https://cdn.example.com/my-submission.pdf\"\n}" } } },
+            { "name": "Get Unsubmitted Assignments", "request": { "method": "GET", "url": "https://www.dok-edu.com/assignment/getUnsubmittedAssignments", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }] } },
+            { "name": "Modify Assignment", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/assignment/modifyAssignment/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Title\",\n  \"description\": \"Updated description\",\n  \"mark\": 25,\n  \"endDate\": \"2026-12-15T23:59:00.000Z\",\n  \"document\": \"https://cdn.example.com/updated.pdf\"\n}" } } },
+            { "name": "Delete Assignment", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/assignment/deleteAssignment/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Quiz",
+          "item": [
+            { "name": "Create Quiz", "request": { "method": "POST", "url": "https://www.dok-edu.com/quiz/createQuiz", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Chapter 1 Quiz\",\n  \"mark\": 25,\n  \"date\": \"2026-11-10T09:00:00.000Z\",\n  \"semester\": \"jun\",\n  \"durationInMin\": 45,\n  \"topicId\": 1\n}" } } },
+            { "name": "Get All Quizzes", "request": { "method": "GET", "url": "https://www.dok-edu.com/quiz/getAllQuizzes", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get Quiz By ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/quiz/get_quiz_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Start Quiz", "request": { "method": "GET", "url": "https://www.dok-edu.com/quiz/startQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Get Active Quiz", "request": { "method": "GET", "url": "https://www.dok-edu.com/quiz/getActiveQuiz", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Submit Active Quiz", "request": { "method": "POST", "url": "https://www.dok-edu.com/quiz/submitActiveQuiz", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"answers\": \"https://cdn.example.com/quiz-answers.pdf\"\n}" } } },
+            { "name": "Submit Quiz", "request": { "method": "POST", "url": "https://www.dok-edu.com/quiz/submitQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"answers\": \"https://cdn.example.com/quiz-answers.pdf\"\n}" } } },
+            { "name": "Modify Quiz", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/quiz/modifyQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Quiz Title\",\n  \"mark\": 30,\n  \"durationInMin\": 60\n}" } } },
+            { "name": "Delete Quiz", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/quiz/deleteQuiz/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Material",
+          "item": [
+            { "name": "Create Material", "request": { "method": "POST", "url": "https://www.dok-edu.com/material/createMaterial", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Lecture Notes\",\n  \"description\": \"Chapter 1 notes\",\n  \"document\": \"https://cdn.example.com/notes.pdf\",\n  \"link\": null,\n  \"topicId\": 1\n}" } } },
+            { "name": "Get All Materials", "request": { "method": "GET", "url": "https://www.dok-edu.com/material/getAllMaterials", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get Material By ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/material/get_material_by_id/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get Material By Topic ID", "request": { "method": "GET", "url": "https://www.dok-edu.com/material/getMaterialByTopicId/1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Update Material", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/material/updateMaterial/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated Notes\",\n  \"description\": \"Revised chapter 1\"\n}" } } },
+            { "name": "Delete Material", "request": { "method": "DELETE", "url": "https://www.dok-edu.com/material/deleteMaterial/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Session",
+          "item": [
+            { "name": "Start Session", "request": { "method": "POST", "url": "https://www.dok-edu.com/session/startSession", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"topicId\": 1\n}" } } },
+            { "name": "End Session", "request": { "method": "PATCH", "url": "https://www.dok-edu.com/session/endSession", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Attend Session", "request": { "method": "POST", "url": "https://www.dok-edu.com/session/attendSession", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get All Sessions", "request": { "method": "GET", "url": "https://www.dok-edu.com/session/getAllSessions", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get Active Session", "request": { "method": "GET", "url": "https://www.dok-edu.com/session/getActiveSession", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } },
+            { "name": "Get All Attendance For Session", "request": { "method": "GET", "url": "https://www.dok-edu.com/session/getAllAttendanceForSession/1", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } },
+            { "name": "Get Last Created Session", "request": { "method": "GET", "url": "https://www.dok-edu.com/session/getLastCreatedSession", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }] } }
+          ]
+        },
+        {
+          "name": "Leaderboard",
+          "item": [
+            { "name": "Get Leaderboard", "request": { "method": "GET", "url": "https://www.dok-edu.com/leaderBoard?page=1", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }] } }
+          ]
+        },
+        {
+          "name": "Health",
+          "item": [
+            { "name": "Health Check", "request": { "method": "GET", "url": "https://www.dok-edu.com/health" } }
+          ]
+        }
+      ]
+    }
+  ]
+}
