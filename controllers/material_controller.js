@@ -40,13 +40,25 @@ const createMaterial = asyncWrapper(async (req, res, next) => {
 
 const getAllMaterials = asyncWrapper(async (req, res, next) => {
     const group = req.user.group;
-    const requester = req.user.type === 'student'
+    const isStudent = req.user.type === 'student';
+    const requester = isStudent
         ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
         : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Fetching all materials for group: ${group}`);
-    const materials = (group === 'all'
+
+    let materials = (group === 'all'
         ? await material.getAllMaterialsAllGroups()
         : await material.getAllMaterialsByGroup(group));
+
+    // Students only see materials whose topic matches their semester
+    if (isStudent) {
+        const studentSemester = req.user.semester;
+        materials = materials.filter(m => {
+            const mat = m.toJSON ? m.toJSON() : m;
+            return mat.Topic?.semester === studentSemester;
+        });
+        logger.debug(`${requester} Filtered materials by semester: ${studentSemester}, count: ${materials.length}`);
+    }
 
     const materialsWithType = materials.map(mat => {
         const materialData = mat.toJSON ? mat.toJSON() : JSON.parse(JSON.stringify(mat));

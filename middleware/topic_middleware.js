@@ -70,6 +70,13 @@ const canSeeTopic = asyncWrapper(async (req, res, next) => {
         logger.info(`${requester} View permission denied - user group: ${req.user.group}, publisher group: ${adminf.group}, topic: ${found.topicId}`);
         return next(new AppError("You do not have permission to view this topic", httpStatus.FORBIDDEN));
     }
+
+    // Students can only access topics matching their semester
+    if (req.user.type === 'student' && found.semester !== req.user.semester) {
+        logger.info(`${requester} Semester mismatch - topic semester: ${found.semester}, student semester: ${req.user.semester}`);
+        return next(new AppError("This topic is not available for your semester", httpStatus.FORBIDDEN));
+    }
+
     logger.debug(`${requester} View permission granted for topic: ${found.topicId}`);
     next();
 });

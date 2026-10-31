@@ -35,14 +35,23 @@ const createQuiz = asyncWrapper(async (req, res) => {
 
 const getAllQuizzes = asyncWrapper(async (req, res) => {
     const group = req.user.group;
-    const requester = req.user.type === 'student'
+    const isStudent = req.user.type === 'student';
+    const requester = isStudent
         ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
         : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Fetching all quizzes for group: ${group}`);
 
-    const quizzes = await quiz.getAllQuizzes();
+    let quizzes = await quiz.getAllQuizzes();
+
+    // Students only see quizzes matching their semester
+    if (isStudent) {
+        const studentSemester = req.user.semester;
+        quizzes = quizzes.filter(q => q.semester === studentSemester);
+        logger.debug(`${requester} Filtered quizzes by semester: ${studentSemester}, count: ${quizzes.length}`);
+    }
+
     const quizzesWithSubmission = [];
-    if (req.user.type === "student" || req.user.type === "assistant") {
+    if (isStudent || req.user.type === "assistant") {
         for (const q of quizzes) {
             logger.debug(`${requester} Checking submission for studentId: ${req.user.id}, quizId: ${q.quizId}`);
             const submitted = await submission.getSubmissionForQuiz(req.user.id, q.quizId);
@@ -53,7 +62,7 @@ const getAllQuizzes = asyncWrapper(async (req, res) => {
         }
     }
 
-    const data = req.user.type === "student" ? quizzesWithSubmission : quizzes;
+    const data = isStudent ? quizzesWithSubmission : quizzes;
 
     logger.info(`${requester} Quizzes fetched, count: ${quizzes.length}`);
     return res.status(200).json({

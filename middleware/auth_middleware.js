@@ -83,6 +83,7 @@ const studentProtect = async (req, res, next) => {
     req.student = decoded; // attach payload
     req.student.email = student.studentEmail
     req.student.name = student.studentName
+    req.student.semester = student.semester
     logger.debug(`[student : ${student.studentEmail} | ${student.studentName} | ${decoded.group}] studentProtect finished`)
     next();
   } catch (error) {
@@ -134,6 +135,7 @@ const protect = asyncWrapper(async (req, res, next) => {
     req.user = decoded; // attach payload
     req.user.email = userType === 'admin' ? user.email : user.studentEmail
     req.user.name = userType === 'admin' ? user.name : user.studentName
+    req.user.semester = userType === 'student' ? user.semester : null
     logger.debug(`[${userType} : ${req.user.email} | ${req.user.name} | ${decoded.group}] protect finished`)
     next();
   } catch (error) {

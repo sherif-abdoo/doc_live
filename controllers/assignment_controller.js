@@ -34,15 +34,23 @@ const createAssignment = asyncWrapper(async (req, res) => {
 
 const getAllAssignments = asyncWrapper(async (req, res) => {
   const group = req.user.group;
+  const isStudent = req.user.type === 'student';
   const studentId = req.user.id;
-  const requester = req.user.type === 'student'
+  const requester = isStudent
     ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
     : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
   logger.debug(`${requester} Fetching all assignments for group: ${group}`);
 
-  const assignments = (group === 'all'
+  let assignments = (group === 'all'
     ? await assignment.getAllAssignments()
     : await assignment.getAllAssignmentsByGroup(group));
+
+  // Students only see assignments matching their semester
+  if (isStudent) {
+    const studentSemester = req.user.semester;
+    assignments = assignments.filter(a => a.semester === studentSemester);
+    logger.debug(`${requester} Filtered assignments by semester: ${studentSemester}, count: ${assignments.length}`);
+  }
 
   const now = new Date();
 
@@ -157,7 +165,8 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
   const studentId = req.student.id;
   const studentProfile = await student.findStudentById(studentId);
   const group = studentProfile.group;
-  logger.debug(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Fetching unsubmitted assignments`);
+  const semester = studentProfile.semester;
+  logger.debug(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Fetching unsubmitted assignments, semester: ${semester}`);
 
   // Fetch all assignments for this group
   const allAssignments = await assignment.getAllAssignmentsByGroup(group);
@@ -165,21 +174,31 @@ const getUnsubmittedAssignments = asyncWrapper(async (req, res, next) => {
   // Fetch all submissions for this student
   const studentSubmissions = await submissions.getSubmissionsByStudentId(studentId);
 
-  // Extract assignment IDs from submissions (use assId)
+  // Extract submitted assignment IDs
   const submittedAssignmentIds = studentSubmissions.map(s => Number(s.assId));
 
-  // Keep only assignments the student has not submitted
+  const now = new Date();
+
+  // Keep only assignments that:
+  // 1. match the student's semester
+  // 2. have not been submitted
+  // 3. deadline has not passed
   const assignments = allAssignments
     .map(a => (a.get ? a.get({ plain: true }) : a))
-    .filter(assignmentPlain => !submittedAssignmentIds.includes(Number(assignmentPlain.assignId)))
-    .map(assignmentPlain => ({
-      assignId: assignmentPlain.assignId,
-      title: assignmentPlain.title,
-      subject: assignmentPlain.subject,
-      topicId: assignmentPlain.topicId,
-      endDate: assignmentPlain.endDate,
+    .filter(a =>
+      a.semester === semester &&
+      !submittedAssignmentIds.includes(Number(a.assignId)) &&
+      new Date(a.endDate) > now
+    )
+    .map(a => ({
+      assignId: a.assignId,
+      title: a.title,
+      subject: a.subject,
+      topicId: a.topicId,
+      endDate: a.endDate,
       submitted: 'false'
     }));
+
   logger.info(`[student : ${req.student.email} | ${studentProfile.studentName} | ${studentProfile.group}] Unsubmitted assignments fetched, count: ${assignments.length}`);
   return res.status(200).json({
     status: "success",

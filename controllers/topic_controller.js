@@ -94,21 +94,28 @@ const getTopicById = asyncWrapper(async (req, res, next) => {
 
 const getAllTopics = asyncWrapper(async (req, res, next) => {
     const group = req.user.group;
-    const requester = req.user.type === 'student'
+    const isStudent = req.user.type === 'student';
+    const requester = isStudent
         ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
         : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Fetching all topics for group: ${group}`);
+
     let topics = (group === 'all') ?
         await topic.getAllTopics() :
         await topic.getAllTopicsByGroup(group);
+
+    // Students only see topics matching their semester
+    if (isStudent) {
+        const studentSemester = req.user.semester;
+        topics = topics.filter(t => t.semester === studentSemester);
+        logger.debug(`${requester} Filtered topics by semester: ${studentSemester}, count: ${topics.length}`);
+    }
 
     logger.info(`${requester} Retrieved ${topics.length} topics for group: ${group}`);
     return res.status(200).json({
         status: "success",
         message: `Retrieved ${topics.length} topics for group ${group}`,
-        data: {
-            topics: topics
-        }
+        data: { topics }
     })
 });
 
