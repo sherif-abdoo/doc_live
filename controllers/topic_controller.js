@@ -20,9 +20,32 @@ const logger = require('../utils/logger')
 
 const createTopic = asyncWrapper(async (req, res) => {
     sanitizeInput(req.body);
-    const { topicName, semester, subject } = req.body;
+    const { topicName, semester, subject, groups } = req.body;
     const publisher = req.admin.id;
     const group = req.admin.group;
+    logger.debug(`publisher : ${publisher}, condition 2 : ${Array.isArray(groups)}, condition 3 : ${groups?.length ?? 'N/A'} , groups : ${groups}`)
+    if (publisher === 1 && Array.isArray(groups) && groups.length > 0) {
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating topic for multiple groups: ${groups.join(', ')}, name: ${topicName}, subject: ${subject}, semester: ${semester}`);
+
+        const createdTopics = await Promise.all(
+            groups.map(g => topic.createTopic(topicName + g, semester, publisher, subject, g.toLowerCase()))
+        );
+
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topics created for ${createdTopics.length} groups`);
+        return res.status(201).json({
+            status: "success",
+            message: `Topic created for ${createdTopics.length} groups`,
+            data: createdTopics.map(t => ({
+                id: t.topicId,
+                topicName: t.topicName,
+                subject: t.subject,
+                semester: t.semester,
+                group: t.group
+            }))
+        });
+    }
+
+    // Default: create a single topic for the admin's own group
     logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating topic - name: ${topicName}, subject: ${subject}, semester: ${semester}, group: ${group}`);
     const newTopic = await topic.createTopic(topicName, semester, publisher, subject, group);
     logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic created successfully, topicId: ${newTopic.topicId}`);

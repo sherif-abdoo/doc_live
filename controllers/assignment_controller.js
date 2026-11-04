@@ -17,14 +17,53 @@ const { sanitizeInput } = require('../utils/sanitize.js');
 const logger = require('../utils/logger');
 
 const createAssignment = asyncWrapper(async (req, res) => {
+  const { groups } = req.body; // extract before sanitizeInput touches it
   sanitizeInput(req.body);
   const { mark, document, endDate, semester, topicId, title, description } = req.body;
   const nmark = Number(mark);
   const startDate = new Date();
   const publisher = req.admin.id;
+
+  // Multi-group: create one assignment per group using each group's latest topic
+  if (publisher === 1 && Array.isArray(groups) && groups.length > 0) {
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating assignment for multiple groups: ${groups.join(', ')}, title: ${title}`);
+
+    const createdAssignments = await Promise.all(
+      groups.map(async (g) => {
+        const latestTopic = await topic.getStudentLastTopic(g.toLowerCase());
+        if (!latestTopic) {
+          logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No topic found for group: ${g}, skipping`);
+          return null;
+        }
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Using topic ${latestTopic.topicId} for group: ${g}`);
+        return assignment.createAssignment(nmark, document, startDate, endDate, semester, publisher, latestTopic.topicId, title, description);
+      })
+    );
+
+    const successful = createdAssignments.filter(a => a !== null);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignments created for ${successful.length}/${groups.length} groups`);
+    return res.status(201).json({
+      status: "success",
+      data: {
+        message: `Assignment created for ${successful.length} groups`,
+        assignments: successful.map(a => ({
+          id: a.assignId,
+          title: a.title,
+          description: a.description,
+          mark: a.mark,
+          document: a.document,
+          startDate: a.startDate,
+          endDate: a.endDate,
+          semester: a.semester,
+          topicId: a.topicId
+        }))
+      }
+    });
+  }
+
+  // Default: single assignment for the given topicId
   logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating assignment: ${title}, topicId: ${topicId}, mark: ${nmark}`);
-  const createdAssignment = await assignment.createAssignment
-    (nmark, document, startDate, endDate, semester, publisher, topicId, title, description)
+  const createdAssignment = await assignment.createAssignment(nmark, document, startDate, endDate, semester, publisher, topicId, title, description);
   logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Assignment created successfully, id: ${createdAssignment.assignId}`);
   return res.status(201).json({
     status: "success",

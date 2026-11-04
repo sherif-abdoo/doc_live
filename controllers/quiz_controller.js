@@ -16,13 +16,52 @@ const { setCache } = require("../utils/cache");
 const { Op } = require("sequelize");
 const { sanitizeInput } = require('../utils/sanitize.js');
 const logger = require('../utils/logger');
+const topicDl = require('../data_link/topic_data_link.js');
 
 const createQuiz = asyncWrapper(async (req, res) => {
+    const { groups } = req.body; // extract before sanitizeInput touches it
     sanitizeInput(req.body);
     const { mark, date, semester, durationInMin, topicId, title } = req.body;
     const publisher = req.admin.id;
     const nmark = parseFloat(mark);
     const ndurationInMin = parseInt(durationInMin);
+
+    // Multi-group: create one quiz per group using each group's latest topic
+    if (publisher === 1 && Array.isArray(groups) && groups.length > 0) {
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating quiz for multiple groups: ${groups.join(', ')}, title: ${title}`);
+
+        const createdQuizzes = await Promise.all(
+            groups.map(async (g) => {
+                const latestTopic = await topicDl.getStudentLastTopic(g.toLowerCase());
+                if (!latestTopic) {
+                    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No topic found for group: ${g}, skipping`);
+                    return null;
+                }
+                logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Using topic ${latestTopic.topicId} for group: ${g}`);
+                return quiz.createQuiz(nmark, publisher, date, semester, ndurationInMin, latestTopic.topicId, title);
+            })
+        );
+
+        const successful = createdQuizzes.filter(q => q !== null);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Quizzes created for ${successful.length}/${groups.length} groups`);
+        return res.status(201).json({
+            status: "success",
+            data: {
+                message: `Quiz created for ${successful.length} groups`,
+                quizzes: successful.map(q => ({
+                    id: q.quizId,
+                    title: q.title,
+                    mark: q.mark,
+                    date: q.startDate,
+                    semester: q.semester,
+                    durationInMin: q.durationInMin,
+                    topicId: q.topicId
+                }))
+            }
+        });
+    }
+
+    // Default: single quiz for the given topicId
     logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] publisher id: ${publisher}`);
     logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating quiz: ${title}, mark: ${nmark}, semester: ${semester}, duration: ${ndurationInMin}min`);
     const newQuiz = await quiz.createQuiz(nmark, publisher, date, semester, ndurationInMin, topicId, title);

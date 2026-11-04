@@ -19,10 +19,46 @@ const logger = require('../utils/logger');
 
 
 const createMaterial = asyncWrapper(async (req, res, next) => {
+    const { groups } = req.body; // extract before sanitizeInput touches it
     sanitizeInput(req.body);
     const { title, description, document, link, topicId } = req.body;
     const publisher = req.admin.id;
     const uploadDate = new Date();
+
+    // Multi-group: create one material per group using each group's latest topic
+    if (publisher === 1 && Array.isArray(groups) && groups.length > 0) {
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating material for multiple groups: ${groups.join(', ')}, title: ${title}`);
+
+        const createdMaterials = await Promise.all(
+            groups.map(async (g) => {
+                const latestTopic = await topic.getStudentLastTopic(g.toLowerCase());
+                if (!latestTopic) {
+                    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No topic found for group: ${g}, skipping`);
+                    return null;
+                }
+                logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Using topic ${latestTopic.topicId} for group: ${g}`);
+                return material.createMaterial(title, description, document, link, latestTopic.topicId, publisher, uploadDate);
+            })
+        );
+
+        const successful = createdMaterials.filter(m => m !== null);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Materials created for ${successful.length}/${groups.length} groups`);
+        return res.status(201).json({
+            status: "success",
+            message: `Material created for ${successful.length} groups`,
+            data: successful.map(m => ({
+                id: m.materialId || m.id,
+                title: m.title,
+                description: m.description,
+                document: m.document,
+                link: m.link,
+                topicId: m.topicId,
+                uploadDate: m.uploadDate
+            }))
+        });
+    }
+
+    // Default: single material for the given topicId
     logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Creating material: ${title}, topicId: ${topicId}`);
     const foundTopic = await topic.getTopicById(topicId);
     const newMaterial = await material.createMaterial(title, description, document, link, topicId, publisher, uploadDate);

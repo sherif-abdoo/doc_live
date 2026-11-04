@@ -9,12 +9,16 @@ function sanitizeInput(input) {
   const sanitized = {};
 
   for (const [key, value] of Object.entries(input)) {
-    sanitized[key] = DOMPurify.sanitize(value);
+    if (typeof value === 'string') {
+      sanitized[key] = DOMPurify.sanitize(value);
+    } else {
+      sanitized[key] = value; // leave arrays, numbers, booleans, objects untouched
+    }
   }
 
   Object.assign(input, sanitized);
 
-  return input; // return clean object
+  return input;
 }
 
 module.exports = { sanitizeInput };
