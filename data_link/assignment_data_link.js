@@ -9,9 +9,9 @@ Assignment.belongsTo(Admin, { foreignKey: "publisher" });
 
 Assignment.belongsTo(Topic, { foreignKey: 'topicId' });
 
-function createAssignment(mark, document, startDate, endDate, semester, publisher,topicId, title, description){
-    return Assignment.create(
-        {mark, document, startDate, endDate, semester,publisher,topicId, title, description}) //7aga
+function createAssignment(mark, document, startDate, endDate, semester, publisher, topicId, title, description) {
+  return Assignment.create(
+    { mark, document, startDate, endDate, semester, publisher, topicId, title, description }) //7aga
 }
 
 async function getAllAssignments() {
@@ -38,44 +38,52 @@ async function getAllAssignments() {
 }
 
 async function getAllAssignmentsByGroup(group) {
-    return await Assignment.findAll({
-        attributes: {
-            include: [
-                ['assignId', 'id'],                // rename assignId → id
-                [col('Admin.group'), 'group'],     // flatten group
-                [col('Topic.subject'), 'subject']  // flatten subject
-            ]
-        },
-        include: [
-            {
-                model: Admin,
-                attributes: [],
-                where: {
-                    [Op.or]: [
-                        { group: group },
-                        { group: "all" }
-                    ]
-                }
-            },
-            {
-                model: Topic,
-                attributes: []
-            }
-        ],
-        order: [['assignId', 'DESC']] 
-    });
+  // Step 1: get all topic IDs that belong to this group (or 'all')
+  const topics = await Topic.findAll({
+    where: {
+      [Op.or]: [
+        { group: group },
+        { group: 'all' }
+      ]
+    },
+    attributes: ['topicId']
+  });
+
+  const topicIds = topics.map(t => t.topicId);
+  if (topicIds.length === 0) return [];
+
+  // Step 2: get all assignments for those topics
+  return await Assignment.findAll({
+    attributes: {
+      include: [
+        ['assignId', 'id'],
+        [col('Topic.group'), 'group'],
+        [col('Topic.subject'), 'subject']
+      ]
+    },
+    where: {
+      topicId: { [Op.in]: topicIds }
+    },
+    include: [
+      { model: Admin, attributes: [] },
+      { model: Topic, attributes: [] }
+    ],
+    order: [['assignId', 'DESC']]
+  });
 }
-function getAssignmentById(assignId){
-    return Assignment.findOne({where : {assignId},
-        attributes: { include : [['assignId' , 'id']]}});
+function getAssignmentById(assignId) {
+  return Assignment.findOne({
+    where: { assignId },
+    attributes: { include: [['assignId', 'id']] }
+  });
 }
 
-function createSubmission(assId, studentId,assistantId,answers, semester){
-    return Submission.create({assId, studentId, assistantId, answers, semester, "type":"assignment"})
+function createSubmission(assId, studentId, assistantId, answers, semester) {
+  return Submission.create({ assId, studentId, assistantId, answers, semester, "type": "assignment" })
 }
 
-function findSubmissionByQuizAndStudent(assignId,studentId){
-    return Submission.findOne({where: {assignId,studentId}})
+function findSubmissionByQuizAndStudent(assignId, studentId) {
+  return Submission.findOne({ where: { assignId, studentId } })
 }
 
 function findSubmissionByAssignmentAndStudent(assId, studentId) {
@@ -91,13 +99,13 @@ function findSubmissionByAssignmentAndStudent(assId, studentId) {
 async function getAssignmentsByTopicId(topicId) {
   return await Assignment.findAll({
     where: { topicId },
-    attributes: ['assignId',['assignId', 'id'], 'title','startDate','mark' ], // only return id and name
+    attributes: ['assignId', ['assignId', 'id'], 'title', 'startDate', 'mark'], // only return id and name
     order: [['assignId', 'DESC']]
   });
 }
 
-function findAssignmentAndDelete(assignId){
-    return Assignment.destroy({where: {assignId}});
+function findAssignmentAndDelete(assignId) {
+  return Assignment.destroy({ where: { assignId } });
 }
 
 // async function getAllAssignmentsByGroup(group) {
@@ -117,15 +125,15 @@ function deleteAssignmentBySemester(semester) {
   });
 }
 
-module.exports={
-    createAssignment,
-    getAllAssignments,
-    getAllAssignmentsByGroup,
-    getAssignmentById,
-    createSubmission,
-    findSubmissionByQuizAndStudent,
-    findSubmissionByAssignmentAndStudent,
-    getAssignmentsByTopicId,
-    findAssignmentAndDelete,
-    deleteAssignmentBySemester,
+module.exports = {
+  createAssignment,
+  getAllAssignments,
+  getAllAssignmentsByGroup,
+  getAssignmentById,
+  createSubmission,
+  findSubmissionByQuizAndStudent,
+  findSubmissionByAssignmentAndStudent,
+  getAssignmentsByTopicId,
+  findAssignmentAndDelete,
+  deleteAssignmentBySemester,
 }
