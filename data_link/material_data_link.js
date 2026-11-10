@@ -9,56 +9,70 @@ const { Op } = require("sequelize");
 Material.belongsTo(Admin, { foreignKey: "publisher" });
 Material.belongsTo(Topic, { foreignKey: 'topicId' });
 
-function createMaterial (title, description, document, link, topicId, publisher, uploadDate) {
-    return Material.create({title, description, document, link, topicId, publisher, uploadDate});
-} 
+function createMaterial(title, description, document, link, topicId, publisher, uploadDate) {
+    return Material.create({ title, description, document, link, topicId, publisher, uploadDate });
+}
 
 function getMaterialById(materialId) {
-    return Material.findOne({where : {materialId},
-    include: [
-        { model: Admin, attributes: ["group"] },
-        { model: Topic, attributes: ['subject'] }
-    ],
-    attributes: {include : [['materialId', 'id']]}});
+    return Material.findOne({
+        where: { materialId },
+        include: [
+            { model: Admin, attributes: ["group"] },
+            { model: Topic, attributes: ['subject'] }
+        ],
+        attributes: { include: [['materialId', 'id']] }
+    });
 }
 
 async function getAllMaterialsAllGroups() {
-  return await Material.findAll({
-    include: [
-      { model: Admin, attributes: ['group'] },
-      { model: Topic, attributes: ['subject'] }
-    ],
-    attributes: { include: [['materialId', 'id']] },
-    order: [['materialId', 'DESC']]
-  });
+    return await Material.findAll({
+        include: [
+            { model: Admin, attributes: ['group'] },
+            { model: Topic, attributes: ['subject'] }
+        ],
+        attributes: { include: [['materialId', 'id']] },
+        order: [['materialId', 'DESC']]
+    });
 }
 
 async function getAllMaterialsByGroup(group) {
+    // Step 1: get all topic IDs that belong to this group (or 'all')
+    const topics = await Topic.findAll({
+        where: {
+            [Op.or]: [
+                { group: group },
+                { group: 'all' }
+            ]
+        },
+        attributes: ['topicId', 'subject', 'semester']
+    });
+
+    const topicIds = topics.map(t => t.topicId);
+    if (topicIds.length === 0) return [];
+
+    // Step 2: get all materials for those topics
     return await Material.findAll({
+        where: {
+            topicId: { [Op.in]: topicIds }
+        },
         include: [
-            {
-                model: Admin,
-                attributes: ["group"],
-                where: {
-                    [Op.or]: [
-                        { group: group },
-                        { group: "all" }
-                    ]
-                }
-            },
-            { model: Topic, attributes: ['subject'] }
+            { model: Admin, attributes: ['group'] },
+            { model: Topic, attributes: ['subject', 'group', 'semester'] }
         ],
-        attributes:{include : [['materialId', 'id']]} ,
-        order: [['materialId', 'DESC']]});
-    }
+        attributes: { include: [['materialId', 'id']] },
+        order: [['materialId', 'DESC']]
+    });
+}
 
 async function getMaterialsByTopicId(topicId) {
-    return await Material.findAll({ where: { topicId },
-    include: [
-        { model: Admin, attributes: ["group"] },
-        { model: Topic, attributes: ['subject'] }
-    ],
-     attributes:{include : [['materialId', 'id']]} });
+    return await Material.findAll({
+        where: { topicId },
+        include: [
+            { model: Admin, attributes: ["group"] },
+            { model: Topic, attributes: ['subject'] }
+        ],
+        attributes: { include: [['materialId', 'id']] }
+    });
 }
 
 function updateMaterial(materialId, updateData) {
@@ -71,23 +85,23 @@ function deleteMaterial(materialId) {
 
 async function getMaterialByTopicId(topicId) {
     return await Material.findAll({
-    where: { topicId },
-    attributes: [['materialId', 'id'], 'title'], // only return id and name
-  });
+        where: { topicId },
+        attributes: [['materialId', 'id'], 'title'], // only return id and name
+    });
 }
 
 async function deleteMaterialBySemester(semester) {
-  return Material.destroy({
-    where: {
-      topicId: {
-        [Op.in]: sequelize.literal(`(
+    return Material.destroy({
+        where: {
+            topicId: {
+                [Op.in]: sequelize.literal(`(
           SELECT "topicId" 
           FROM "topic" 
           WHERE LOWER(semester) LIKE LOWER(${sequelize.escape('%' + semester + '%')})
         )`)
-      }
-    }
-  });
+            }
+        }
+    });
 }
 
 

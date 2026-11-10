@@ -9,87 +9,96 @@ const Topic = require('../models/topic_model');
 Quiz.belongsTo(Admin, { foreignKey: "publisher" });
 Quiz.belongsTo(Topic, { foreignKey: "topicId", as: 'topic' });
 
-function createQuiz(mark,publisher,date,semester,durationInMin,topicId, title){
+function createQuiz(mark, publisher, date, semester, durationInMin, topicId, title) {
   //nmark,publisher,date,semester,ndurationInMin, topicId, title
-    return Quiz.create({mark,publisher,date,semester,durationInMin, topicId, title, createdAt: Date.now()});
+  return Quiz.create({ mark, publisher, date, semester, durationInMin, topicId, title, createdAt: Date.now() });
 }; // nice comment
 
-function getAllQuizzes(){
-    return Quiz.findAll({attributes : {include: [
-        ['quizId', 'id'],[Sequelize.col('Admin.group'), 'group'],[Sequelize.col('topic.subject'), 'subject']
-    ]},
+function getAllQuizzes() {
+  return Quiz.findAll({
+    attributes: {
+      include: [
+        ['quizId', 'id'], [Sequelize.col('Admin.group'), 'group'], [Sequelize.col('topic.subject'), 'subject']
+      ]
+    },
     include: [
       {
         model: Topic,
         as: 'topic', // only needed if you used 'as' in association
         attributes: [] // or ['name'], depending on your column
-      },{
+      }, {
         model: Admin,
         attributes: [] // no "where" — show all admins' quizzes
       }
     ],
-     order: [['quizId', 'DESC']]});
+    order: [['quizId', 'DESC']]
+  });
 };
 
 
 async function getAllQuizzesForGroup(group) {
+  // Step 1: get all topic IDs that belong to this group (or 'all')
+  const topics = await Topic.findAll({
+    where: {
+      [Op.or]: [
+        { group: group },
+        { group: 'all' }
+      ]
+    },
+    attributes: ['topicId']
+  });
+
+  const topicIds = topics.map(t => t.topicId);
+  if (topicIds.length === 0) return [];
+
+  // Step 2: get all quizzes for those topics
   return await Quiz.findAll({
     attributes: {
       include: [
         ['quizId', 'id'],
-        [Sequelize.col('Admin.group'), 'group'],      // flatten group
-        [Sequelize.col('topic.subject'), 'subject']   // flatten subject
+        [Sequelize.col('topic.group'), 'group'],
+        [Sequelize.col('topic.subject'), 'subject']
       ]
     },
+    where: {
+      topicId: { [Op.in]: topicIds }
+    },
     include: [
-      {
-        model: Admin,
-        attributes: [], // don't include Admin as nested object
-        where: {
-          [Op.or]: [
-            { group: group },
-            { group: "all" }
-          ]
-        }
-      },
-      {
-        model: Topic,
-        as: 'topic',
-        attributes: [] // don't include topic as nested object
-      }
+      { model: Admin, attributes: [] },
+      { model: Topic, as: 'topic', attributes: [] }
     ],
     order: [['quizId', 'DESC']]
   });
 }
 
 function getQuizById(quizId) {
-    return Quiz.findByPk(quizId, {
-        attributes: {
-            include: [['quizId', 'id']] // adds 'id' (aliased from 'quizId') alongside all original fields
-        }
-    });
+  return Quiz.findByPk(quizId, {
+    attributes: {
+      include: [['quizId', 'id']] // adds 'id' (aliased from 'quizId') alongside all original fields
+    }
+  });
 }
 function updateQuizDates(quizId, newDate) {
-    return Quiz.update({ startDate: newDate }, { where: { quizId } });
+  return Quiz.update({ startDate: newDate }, { where: { quizId } });
 }
 
-function createSubmission(quizId, studentId,assistantId ,answers, semester) {
-    return Submission.create({ quizId, studentId,assistantId ,answers, semester, type : "quiz" });
+function createSubmission(quizId, studentId, assistantId, answers, semester) {
+  return Submission.create({ quizId, studentId, assistantId, answers, semester, type: "quiz" });
 }
 
-function findSubmissionByQuizAndStudent(quizId,studentId){
-    return Submission.findOne({where :{quizId,studentId,type:"quiz"}, order: [['subDate', 'DESC']]});
+function findSubmissionByQuizAndStudent(quizId, studentId) {
+  return Submission.findOne({ where: { quizId, studentId, type: "quiz" }, order: [['subDate', 'DESC']] });
 }
 
 async function getQuizzesByTopicId(topicId) {
-    return await Quiz.findAll({
+  return await Quiz.findAll({
     where: { topicId },
-    attributes: ['quizId',['quizId', 'id'], 'title', 'mark'], order: [['quizId','DESC']] // only return id and name
+    attributes: ['quizId', ['quizId', 'id'], 'title', 'mark'], order: [['quizId', 'DESC']] // only return id and name
   });
 }
 
 function findQuizAndDelete(quizId) {
-    return Quiz.destroy({ where: { quizId } });
+  return Quiz.destroy({ where: { quizId } });
 }
 
 function deleteQuizBySemester(semester) {
@@ -103,14 +112,14 @@ function deleteQuizBySemester(semester) {
 }
 
 module.exports = {
-     createQuiz,
-    getAllQuizzes,
-    getAllQuizzesForGroup,
-    getQuizById,
-    updateQuizDates,
-    createSubmission,
-    findSubmissionByQuizAndStudent,
-    getQuizzesByTopicId,
-    findQuizAndDelete,
-    deleteQuizBySemester
+  createQuiz,
+  getAllQuizzes,
+  getAllQuizzesForGroup,
+  getQuizById,
+  updateQuizDates,
+  createSubmission,
+  findSubmissionByQuizAndStudent,
+  getQuizzesByTopicId,
+  findQuizAndDelete,
+  deleteQuizBySemester
 };
