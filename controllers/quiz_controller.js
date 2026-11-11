@@ -80,7 +80,9 @@ const getAllQuizzes = asyncWrapper(async (req, res) => {
         : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Fetching all quizzes for group: ${group}`);
 
-    let quizzes = await quiz.getAllQuizzes();
+    let quizzes = group === 'all'
+        ? await quiz.getAllQuizzes()
+        : await quiz.getAllQuizzesForGroup(group);
 
     // Students only see quizzes matching their semester
     if (isStudent) {
