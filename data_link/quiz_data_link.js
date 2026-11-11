@@ -37,7 +37,6 @@ function getAllQuizzes() {
 
 
 async function getAllQuizzesForGroup(group) {
-  // Step 1: get all topic IDs that belong to this group (or 'all')
   const topics = await Topic.findAll({
     where: {
       [Op.or]: [
@@ -51,7 +50,6 @@ async function getAllQuizzesForGroup(group) {
   const topicIds = topics.map(t => t.topicId);
   if (topicIds.length === 0) return [];
 
-  // Step 2: get all quizzes for those topics
   return await Quiz.findAll({
     attributes: {
       include: [
@@ -64,7 +62,6 @@ async function getAllQuizzesForGroup(group) {
       topicId: { [Op.in]: topicIds }
     },
     include: [
-      { model: Admin, attributes: [] },
       { model: Topic, as: 'topic', attributes: [] }
     ],
     order: [['quizId', 'DESC']]

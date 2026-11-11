@@ -36,7 +36,6 @@ async function getAllMaterialsAllGroups() {
 }
 
 async function getAllMaterialsByGroup(group) {
-    // Step 1: get all topic IDs that belong to this group (or 'all')
     const topics = await Topic.findAll({
         where: {
             [Op.or]: [
@@ -44,19 +43,17 @@ async function getAllMaterialsByGroup(group) {
                 { group: 'all' }
             ]
         },
-        attributes: ['topicId', 'subject', 'semester']
+        attributes: ['topicId']
     });
 
     const topicIds = topics.map(t => t.topicId);
     if (topicIds.length === 0) return [];
 
-    // Step 2: get all materials for those topics
     return await Material.findAll({
         where: {
             topicId: { [Op.in]: topicIds }
         },
         include: [
-            { model: Admin, attributes: ['group'] },
             { model: Topic, attributes: ['subject', 'group', 'semester'] }
         ],
         attributes: { include: [['materialId', 'id']] },

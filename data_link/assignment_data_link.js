@@ -38,7 +38,6 @@ async function getAllAssignments() {
 }
 
 async function getAllAssignmentsByGroup(group) {
-  // Step 1: get all topic IDs that belong to this group (or 'all')
   const topics = await Topic.findAll({
     where: {
       [Op.or]: [
@@ -52,7 +51,6 @@ async function getAllAssignmentsByGroup(group) {
   const topicIds = topics.map(t => t.topicId);
   if (topicIds.length === 0) return [];
 
-  // Step 2: get all assignments for those topics
   return await Assignment.findAll({
     attributes: {
       include: [
@@ -65,7 +63,6 @@ async function getAllAssignmentsByGroup(group) {
       topicId: { [Op.in]: topicIds }
     },
     include: [
-      { model: Admin, attributes: [] },
       { model: Topic, attributes: [] }
     ],
     order: [['assignId', 'DESC']]
