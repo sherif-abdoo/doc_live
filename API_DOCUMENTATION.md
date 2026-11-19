@@ -2167,9 +2167,20 @@ Base path: `/session`
 
 ### `POST /session/startSession`
 
-Creates a new session for the admin's group using the group's latest topic. Caches the active session and notifies students via SSE.
+Creates a new session. Caches the active session and notifies students via SSE. Supports two modes:
 
 **Auth:** Admin token
+
+---
+
+#### Single-group (all admins)
+
+Starts a session for the admin's own group using that group's latest topic.
+
+**Request Body**
+```json
+{ "topicId": 1 }
+```
 
 **Success `201`**
 ```json
@@ -2187,7 +2198,28 @@ Creates a new session for the admin's group using the group's latest topic. Cach
 }
 ```
 
-> No body required. Session date is set to now. The current topic is determined from the latest topic in the group.
+---
+
+#### Multi-group (DOK / admin id = 1 only)
+
+Starts sessions simultaneously for multiple groups. Each group uses the topic mapped to it.
+
+**Request Body**
+```json
+{ "groups": ["groupa", "groupb", "groupc"] }
+```
+
+**Success `201`**
+```json
+{
+  "status": "success",
+  "message": "Sessions started for 3 groups",
+  "data": [
+    { "id": 10, "topicId": 4, "group": "groupa", "semester": "jun", "dateAndTime": "2026-11-10T09:00:00.000Z", "day": "Monday" },
+    { "id": 11, "topicId": 5, "group": "groupb", "semester": "jun", "dateAndTime": "2026-11-10T09:00:00.000Z", "day": "Monday" }
+  ]
+}
+```
 
 ---
 
@@ -2197,7 +2229,19 @@ Marks the current active session as finished and clears it from cache.
 
 **Auth:** Admin token
 
-**Success `200`**
+**Behavior by role:**
+- **Regular admin** — ends only the active session for their own group.
+- **DOK (admin id = 1)** — ends ALL active sessions across every group simultaneously.
+
+**Success `200` — Regular admin**
+```json
+{
+  "status": "success",
+  "data": { "message": "Session ended successfully" }
+}
+```
+
+**Success `200` — DOK**
 ```json
 {
   "status": "success",
@@ -2209,7 +2253,8 @@ Marks the current active session as finished and clears it from cache.
 
 | Scenario | Status | Message |
 |---|---|---|
-| No active (unfinished) session for admin's group | `404` | `"No active session found for your group"` |
+| No active (unfinished) session for admin's group (regular admin) | `404` | `"No active session found for your group"` |
+| No active sessions found across any group (DOK) | `404` | `"No active sessions found"` |
 
 ---
 
@@ -2481,7 +2526,13 @@ Updates a topic's name, semester, and/or subject.
 
 ### `DELETE /topic/deleteTopic/:topicId`
 
-Deletes a topic and all sessions linked to it.
+Deletes a topic and all data linked to it via a deep cascading delete in this order:
+
+1. Assignment submissions → Assignments
+2. Quiz submissions → Quizzes
+3. Attendance records → Sessions
+4. Materials
+5. The topic itself
 
 **Auth:** Admin token (must match publisher's group)  
 **URL Param:** `topicId`
