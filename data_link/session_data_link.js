@@ -212,18 +212,21 @@ function closeOldSessions() {
 
 async function getActiveSessionByAGroup(group) {
   await closeOldSessions();
-  let session = getCache(`activeSession:all`);
-  if (!session) {
-    session = getCache(`activeSession:${group}`);
-    if (!session) {
-      logger.db("finding session from db")
-      return Session.findOne({
-        where: { finished: false, group },
-        order: [['sessionId', 'DESC']]
-      })
-    }
-  }
-  return session;
+  const cached = getCache(`activeSession:${group}`);
+  if (cached) return cached;
+  logger.db("finding session from db for group: " + group);
+  return Session.findOne({
+    where: { finished: false, group },
+    order: [['sessionId', 'DESC']]
+  });
+}
+
+async function getAllActiveSessions() {
+  await closeOldSessions();
+  return Session.findAll({
+    where: { finished: false },
+    order: [['sessionId', 'DESC']]
+  });
 }
 
 
@@ -260,7 +263,6 @@ async function existingSession(adminGroup) {
 module.exports = {
   findSessionById,
   UpdateSession,
-  //    findAllUpcomingSessionByGroup,
   getActiveSessionByGroup,
   hasAttendedSession,
   recordAttendance,
@@ -273,6 +275,7 @@ module.exports = {
   deleteAttendanceBySemester,
   deleteSessionsBySemester,
   getActiveSessionByAGroup,
+  getAllActiveSessions,
   getLastCreatedSessionByGroup,
   existingSession
 }

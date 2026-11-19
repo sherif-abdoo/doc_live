@@ -19,15 +19,67 @@ const logger = require('../utils/logger');
 
 const startSession = asyncWrapper(async (req, res, next) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const { groups } = req.body; // extract before sanitizeInput
     sanitizeInput(req.body);
     const { topicId } = req.body;
     const adminId = req.admin.id;
     const sgroup = req.admin.group;
-    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Admin group: ${sgroup}`);
-
     const adminName = req.admin.name;
     const today = new Date();
     const dayName = days[today.getDay()];
+
+    // DOK multi-group: start one session per group
+    if (adminId === 1 && Array.isArray(groups) && groups.length > 0) {
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Starting sessions for multiple groups: ${groups.join(', ')}`);
+
+        const results = await Promise.all(
+            groups.map(async (g) => {
+                const groupLower = g.toLowerCase();
+
+                const alreadyLive = await session.getActiveSessionByAGroup(groupLower);
+                if (alreadyLive) {
+                    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Session already live for group: ${groupLower}, skipping`);
+                    return null;
+                }
+
+                const currTopic = await topicDl.getStudentLastTopic(groupLower);
+                if (!currTopic) {
+                    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No topic found for group: ${groupLower}, skipping`);
+                    return null;
+                }
+
+                const newSession = await admin.createSession(currTopic.topicId, groupLower, currTopic.semester, today, dayName);
+                setCache(`activeSession:${groupLower}`, newSession, 60 * 60 * 24);
+                logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Cache set for group: ${groupLower}`);
+
+                sse.notifyStudents(groupLower, {
+                    event: "session_update",
+                    message: `Group ${groupLower}, a session has been started by ${adminName}. Please check your dashboard.`,
+                    post: { dateAndTime: today, topic: currTopic.topicName },
+                });
+
+                return newSession;
+            })
+        );
+
+        const successful = results.filter(s => s !== null);
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Sessions started for ${successful.length}/${groups.length} groups`);
+        return res.status(201).json({
+            status: "success",
+            message: `Sessions started for ${successful.length} groups`,
+            data: successful.map(s => ({
+                id: s.sessionId,
+                topicId: s.topicId,
+                group: s.group,
+                semester: s.semester,
+                dateAndTime: s.dateAndTime,
+                day: s.day
+            }))
+        });
+    }
+
+    // Default: single group session
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Admin group: ${sgroup}`);
 
     const alreadyLive = await session.getActiveSessionByAGroup(sgroup);
     if (alreadyLive) {
@@ -62,11 +114,8 @@ const startSession = asyncWrapper(async (req, res, next) => {
     setCache(key, newSession, 60 * 60 * 24);
     sse.notifyStudents(sgroup, {
         event: "session_update",
-        message: `Group ${sgroup}, a date for the upcoming session has been dropped by ${adminName}. Please check your dashboard.`,
-        post: {
-            dateAndTime: today,
-            topic: currTopic.title,
-        },
+        message: `Group ${sgroup}, a session has been started by ${adminName}. Please check your dashboard.`,
+        post: { dateAndTime: today, topic: currTopic.topicName },
     });
     logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Session created successfully for group: ${sgroup}, sessionId: ${newSession.sessionId}`);
     return res.status(201).json({
@@ -80,11 +129,35 @@ const startSession = asyncWrapper(async (req, res, next) => {
             dateAndTime: newSession.dateAndTime,
             day: newSession.day
         }
-    })
+    });
 });
 
 const endSession = asyncWrapper(async (req, res, next) => {
+    const adminId = req.admin.id;
     const adminGroup = req.admin.group;
+
+    // DOK: end all active sessions across all groups
+    if (adminId === 1) {
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Ending all active sessions (DOK)`);
+        const activeSessions = await session.getAllActiveSessions();
+        if (!activeSessions || activeSessions.length === 0) {
+            logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No active sessions found`);
+            return next(new AppError("No active sessions found", httpStatus.NOT_FOUND));
+        }
+        await Promise.all(activeSessions.map(async (s) => {
+            s.finished = true;
+            await s.save();
+            deleteCache(`activeSession:${s.group}`);
+            logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Ended session ${s.sessionId} for group: ${s.group}`);
+        }));
+        logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] All active sessions ended, count: ${activeSessions.length}`);
+        return res.status(200).json({
+            status: "success",
+            data: { message: `${activeSessions.length} session(s) ended successfully` }
+        });
+    }
+
+    // Regular admin: end only their group's session
     logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Ending session for group: ${adminGroup}`);
     const currSession = await session.getActiveSessionByAGroup(adminGroup);
     if (!currSession) {
@@ -99,7 +172,7 @@ const endSession = asyncWrapper(async (req, res, next) => {
         status: "success",
         data: { message: "Session ended successfully" }
     });
-})
+});
 
 const attendSession = asyncWrapper(async (req, res, next) => {
     const stud = req.user;
@@ -184,12 +257,13 @@ const getActiveSession = asyncWrapper(async (req, res, next) => {
 });
 
 const getLastCreatedSession = asyncWrapper(async (req, res, next) => {
+    const adminId = req.admin.id;
     const adminGroup = req.admin.group;
     logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Fetching last created session for group: ${adminGroup}`);
     const lastSession = await session.getLastCreatedSessionByGroup(adminGroup);
     if (!lastSession) {
         logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] No sessions found for group: ${adminGroup}`);
-        return next(new AppError("No sessions found for your group", httpStatus.Success));
+        return next(new AppError("No sessions found for your group", httpStatus.NOT_FOUND));
     }
     logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Last session found: ${lastSession.sessionId}`);
     return res.status(200).json({

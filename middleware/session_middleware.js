@@ -102,13 +102,10 @@ const activeSessionExists = asyncWrapper(async (req, res, next) => {
         ? `[student : ${req.user.email} | ${req.user.name} | ${req.user.group}]`
         : `[admin : ${req.user.email} | ${req.user.name} | ${req.user.group}]`;
     logger.debug(`${requester} Checking for active session in group: ${userGroup}`);
-    let activeSession = await session.getActiveSessionByAGroup(userGroup);
+    const activeSession = await session.getActiveSessionByAGroup(userGroup);
     if (!activeSession) {
-        activeSession = await session.getActiveSessionByAGroup('all');
-        if (!activeSession) {
-            logger.info(`${requester} No active session found for group: ${userGroup}`);
-            return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
-        }
+        logger.info(`${requester} No active session found for group: ${userGroup}`);
+        return next(new AppError("No active session found for your group", httpStatus.NOT_FOUND));
     }
     logger.debug(`${requester} Active session found: ${activeSession.sessionId}`);
     req.activeSession = activeSession;

@@ -15,6 +15,10 @@ const { Op } = require("sequelize");
 const material = require('../data_link/material_data_link.js');
 const { sanitizeInput } = require('../utils/sanitize.js');
 const Session = require('../models/session_model.js');
+const Assignment = require('../models/assignment_model.js');
+const Submission = require('../models/submission_model.js');
+const Attendance = require('../models/attendance_model.js');
+const Material = require('../models/material_model.js');
 const logger = require('../utils/logger')
 
 
@@ -168,15 +172,49 @@ const updateTopic = asyncWrapper(async (req, res, next) => {
 
 const deleteTopic = asyncWrapper(async (req, res, next) => {
     const found = req.found;
-    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleting topic: ${found.topicId} - ${found.topicName}`);
-    await Session.destroy({
-        where: { topicId: found.topicId }
-    });
+    const topicId = found.topicId;
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleting topic: ${topicId} - ${found.topicName}`);
+
+    // 1. Assignments → their submissions first
+    const assignments = await Assignment.findAll({ where: { topicId }, attributes: ['assignId'] });
+    const assignmentIds = assignments.map(a => a.assignId);
+    if (assignmentIds.length > 0) {
+        const deletedAssignmentSubs = await Submission.destroy({ where: { assId: { [Op.in]: assignmentIds }, type: 'assignment' } });
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedAssignmentSubs} assignment submissions for topic: ${topicId}`);
+        const deletedAssignments = await Assignment.destroy({ where: { assignId: { [Op.in]: assignmentIds } } });
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedAssignments} assignments for topic: ${topicId}`);
+    }
+
+    // 2. Quizzes → their submissions first
+    const quizzes = await Quiz.findAll({ where: { topicId }, attributes: ['quizId'] });
+    const quizIds = quizzes.map(q => q.quizId);
+    if (quizIds.length > 0) {
+        const deletedQuizSubs = await Submission.destroy({ where: { quizId: { [Op.in]: quizIds }, type: 'quiz' } });
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedQuizSubs} quiz submissions for topic: ${topicId}`);
+        const deletedQuizzes = await Quiz.destroy({ where: { quizId: { [Op.in]: quizIds } } });
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedQuizzes} quizzes for topic: ${topicId}`);
+    }
+
+    // 3. Sessions → their attendance first
+    const sessions = await Session.findAll({ where: { topicId }, attributes: ['sessionId'] });
+    const sessionIds = sessions.map(s => s.sessionId);
+    if (sessionIds.length > 0) {
+        const deletedAttendance = await Attendance.destroy({ where: { sessionId: { [Op.in]: sessionIds } } });
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedAttendance} attendance records for topic: ${topicId}`);
+        const deletedSessions = await Session.destroy({ where: { sessionId: { [Op.in]: sessionIds } } });
+        logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedSessions} sessions for topic: ${topicId}`);
+    }
+
+    // 4. Materials
+    const deletedMaterials = await Material.destroy({ where: { topicId } });
+    logger.debug(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Deleted ${deletedMaterials} materials for topic: ${topicId}`);
+
+    // 5. Finally delete the topic
     await found.destroy();
-    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic deleted successfully, topicId: ${found.topicId}`);
+    logger.info(`[admin : ${req.admin.email} | ${req.admin.name} | ${req.admin.group}] Topic deleted successfully, topicId: ${topicId}`);
     res.status(200).json({
         status: "success",
-        message: `topic with id: ${req.params.topicId} is deleted`
+        message: `topic with id: ${topicId} is deleted`
     });
 });
 
